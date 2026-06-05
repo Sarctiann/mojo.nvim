@@ -17,6 +17,14 @@ function M.setup(user_config)
     require("mojo.treesitter").setup(opts.treesitter)
   end
 
+  if opts.lsp and opts.lsp.enabled ~= false then
+    require("mojo.lsp").setup(opts.lsp)
+  end
+
+  if opts.format and opts.format.enabled ~= false then
+    require("mojo.format").setup(opts.format)
+  end
+
   if opts.terminal and opts.terminal.enabled ~= false then
     require("mojo.terminal").setup(opts.terminal)
   end
