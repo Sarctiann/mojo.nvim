@@ -1,0 +1,5 @@
+.DS_Store
+*.log
+cli-integration-debug.log
+*/cli-integration-debug.log
+*/.DS_Store
