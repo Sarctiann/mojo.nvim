@@ -1,4 +1,5 @@
 local M = {}
+local debug = require("mojo.debug")
 
 local cache = {}
 
@@ -92,6 +93,9 @@ end
 function M.activate_for_dir(path)
   local env = M.detect(path)
   if not env then
+    debug.log("activate_skip", function()
+      return { path = path or vim.fn.getcwd() }
+    end)
     return nil
   end
 
@@ -108,16 +112,31 @@ function M.activate_for_dir(path)
     vim.env.VIRTUAL_ENV = env.env_dir
   end
 
+  debug.log("activate", function()
+    return {
+      type = env.type,
+      root = env.root,
+      env_dir = env.env_dir or "none",
+      bin_dir = env.bin_dir or "none",
+    }
+  end)
+
   return env
 end
 
 function M.detect(path)
   local root = root_for(path)
   if not root then
+    debug.log("detect_miss", function()
+      return { path = path or vim.fn.getcwd() }
+    end)
     return nil
   end
 
   if cache[root] ~= nil then
+    debug.log("detect_cache", function()
+      return { root = root, hit = true, type = cache[root] and cache[root].type or "none" }
+    end)
     return cache[root] or nil
   end
 
@@ -134,6 +153,9 @@ function M.detect(path)
       activate_cmd = env_name and string.format('eval "$(pixi shell-hook --environment %s)"', env_name)
         or 'eval "$(pixi shell-hook)"',
     }
+    debug.log("detect_pixi", function()
+      return { root = root, env_name = env_name or "none", env_dir = pixi_env or "none" }
+    end)
     return cache[root]
   end
 
@@ -147,10 +169,16 @@ function M.detect(path)
       bin_dir = vim.fs.joinpath(venv_dir, "bin"),
       activate_cmd = "source .venv/bin/activate",
     }
+    debug.log("detect_venv", function()
+      return { root = root, env_dir = venv_dir }
+    end)
     return cache[root]
   end
 
   cache[root] = false
+  debug.log("detect_none", function()
+    return { root = root }
+  end)
   return nil
 end
 
@@ -178,6 +206,9 @@ function M.get_lsp_cmd(path)
   if env and env.bin_dir then
     local bin = vim.fs.joinpath(env.bin_dir, "mojo-lsp-server")
     if has_file(bin) then
+      debug.log("lsp_cmd", function()
+        return { path = path or vim.fn.getcwd(), cmd = bin, source = "bin_dir" }
+      end)
       return { bin }
     end
   end
@@ -185,14 +216,23 @@ function M.get_lsp_cmd(path)
   if env and env.type == "pixi" then
     local bin = find_pixi_binary(env.root, "mojo-lsp-server")
     if bin then
+      debug.log("lsp_cmd", function()
+        return { path = path or vim.fn.getcwd(), cmd = bin, source = "pixi_envs" }
+      end)
       return { bin }
     end
   end
 
   if vim.fn.executable("mojo-lsp-server") == 1 then
+    debug.log("lsp_cmd", function()
+      return { path = path or vim.fn.getcwd(), cmd = "mojo-lsp-server", source = "path" }
+    end)
     return { "mojo-lsp-server" }
   end
 
+  debug.log("lsp_cmd_miss", function()
+    return { path = path or vim.fn.getcwd() }
+  end)
   return nil
 end
 

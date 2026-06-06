@@ -32,6 +32,7 @@ The plugin is designed to be generic and modular so each piece can be replaced l
 
 ```lua
 require("mojo").setup({
+  debug = true,
   lsp = {
     enabled = true,
   },
@@ -78,5 +79,6 @@ local mojo = require("mojo.adapters.lazyvim")
 
 - The plugin does not ship the Mojo LSP binary.
 - The plugin does not bundle the official Mojo toolchain.
+- When `debug = true`, logs are written to `mojo-debug.log` in the current working directory.
 - The plugin auto-activates Pixi or venv project environments before Mojo LSP startup and in terminal buffers.
 - Treesitter is isolated behind `lua/mojo/treesitter.lua` so the parser backend can be replaced later.

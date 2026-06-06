@@ -27,6 +27,7 @@ M.defaults = {
     enabled = false,
     formatter_name = "mojo",
   },
+  debug = false,
   hooks = {},
 }
 

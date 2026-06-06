@@ -1,4 +1,5 @@
 local env = require("mojo.env")
+local debug = require("mojo.debug")
 
 local M = {}
 
@@ -24,15 +25,27 @@ function M.opts(user_opts)
     end,
   }, user_opts)
 
+  debug.log("lsp_opts", function()
+    return {
+      root_markers = table.concat(user_opts.root_markers or { "pixi.toml", "pyproject.toml", ".pixi", ".venv" }, ","),
+    }
+  end)
+
   return opts
 end
 
 function M.setup(user_opts)
   local ok, lspconfig = pcall(require, "lspconfig")
   if not ok then
+    debug.log("lsp_setup_skip", function()
+      return { reason = "lspconfig_missing" }
+    end)
     return false
   end
 
+  debug.log("lsp_setup", function()
+    return { server = "mojo" }
+  end)
   lspconfig.mojo.setup(M.opts(user_opts))
   return true
 end
