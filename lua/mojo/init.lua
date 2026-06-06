@@ -1,5 +1,6 @@
 local config = require("mojo.config")
 local hooks = require("mojo.hooks")
+local env = require("mojo.env")
 
 local M = {}
 
@@ -8,6 +9,14 @@ M.hooks = hooks.defaults
 function M.setup(user_config)
   local opts = config.setup(user_config)
   M.hooks = hooks.merge(opts.hooks)
+
+  vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
+    pattern = "*.mojo",
+    callback = function(ev)
+      local path = vim.api.nvim_buf_get_name(ev.buf)
+      env.activate_for_dir(path)
+    end,
+  })
 
   if opts.filetype and opts.filetype.enabled ~= false then
     require("mojo.filetype").setup()

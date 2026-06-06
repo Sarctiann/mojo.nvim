@@ -65,6 +65,52 @@ local function find_pixi_binary(root, binary)
   return nil
 end
 
+local function env_prepend(key, value)
+  if not value or value == "" then
+    return
+  end
+
+  local current = vim.env[key] or ""
+  local parts = {}
+  local seen = {}
+
+  local function add(part)
+    if part ~= "" and not seen[part] then
+      seen[part] = true
+      table.insert(parts, part)
+    end
+  end
+
+  add(value)
+  for part in current:gmatch("[^:]+") do
+    add(part)
+  end
+
+  vim.env[key] = table.concat(parts, ":")
+end
+
+function M.activate_for_dir(path)
+  local env = M.detect(path)
+  if not env then
+    return nil
+  end
+
+  if env.bin_dir then
+    env_prepend("PATH", env.bin_dir)
+  end
+
+  if env.type == "pixi" then
+    vim.env.CONDA_PREFIX = env.env_dir
+    vim.env.MODULAR_HOME = vim.fs.joinpath(env.env_dir, "share", "max")
+    env_prepend("DYLD_FALLBACK_LIBRARY_PATH", vim.fs.joinpath(env.env_dir, "lib"))
+    env_prepend("DYLD_FALLBACK_LIBRARY_PATH", vim.fs.joinpath(env.env_dir, "lib", "swift"))
+  elseif env.type == "venv" then
+    vim.env.VIRTUAL_ENV = env.env_dir
+  end
+
+  return env
+end
+
 function M.detect(path)
   local root = root_for(path)
   if not root then

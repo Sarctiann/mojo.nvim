@@ -78,4 +78,5 @@ local mojo = require("mojo.adapters.lazyvim")
 
 - The plugin does not ship the Mojo LSP binary.
 - The plugin does not bundle the official Mojo toolchain.
+- The plugin auto-activates Pixi or venv project environments before Mojo LSP startup and in terminal buffers.
 - Treesitter is isolated behind `lua/mojo/treesitter.lua` so the parser backend can be replaced later.
