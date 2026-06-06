@@ -1,27 +1,10 @@
 # mojo.nvim
 
-Sovereign Neovim integration for [Mojo](https://www.modular.com/mojo).
+Neovim integration for [Mojo](https://www.modular.com/mojo).
 
-`mojo.nvim` owns the entire Mojo- Neovim surface. It centralizes filetype detection,
-Treesitter, LSP, formatting, environment activation, and any future language tooling
-into a single, modular plugin designed to be replaced piece by piece when
-[Modular](https://www.modular.com) ships official tools.
-
-## Sovereignty Rules
-
-1. **Complete Centralization** — Every Mojo-specific Neovim feature lives here.
-2. **Modular → Official Replacement** — Each module can be rewritten independently when
-   Modular ships an official alternative.
-3. **No Third-Party Mojo Dependencies** — Mojo-specific third-party plugins are
-   re-implemented here, not depended on.
-4. **Adapter Pattern** — Generic integrations (LazyVim) live in `adapters/` and are
-   always optional.
-5. **Zero-Bundle for Official Binaries** — LSP server, formatter, and CLI tools are
-   discovered at runtime, never bundled.
-6. **Environmental Autonomy** — Pixi and venv environments are detected and activated
-   transparently for LSP, formatting, and terminals.
-7. **One Breaking-Change Point** — When Modular ships a change, only the relevant
-   module needs updating.
+Centralizes filetype detection, Treesitter, LSP, formatting, and environment
+activation — designed so each piece can be swapped when
+[Modular](https://www.modular.com) ships official tooling.
 
 ## What it provides
 
@@ -32,6 +15,28 @@ into a single, modular plugin designed to be replaced piece by piece when
 - Terminal environment auto-activation
 - LazyVim adapter helpers
 - EmmyLua type annotations (module: `Mojo-lang`)
+
+## Features
+
+### Filetype
+`.mojo` and `🔥` files are automatically recognized as `mojo` filetype.
+
+### Environment
+Detects Pixi (`pixi.toml` / `.pixi/`) and virtualenv (`.venv/`) projects and
+activates them for LSP, formatting, and terminal buffers transparently.
+
+### Treesitter
+Registers the Mojo parser with `nvim-treesitter`.
+
+### LSP
+Configures `mojo-lsp-server` via `nvim-lspconfig` with environment-aware binary
+resolution (finds the binary in the active Pixi/venv environment).
+
+### Format
+Configures `mojo format` via `conform.nvim` with environment-aware binary resolution.
+
+### Terminal
+Auto-activates the project environment in new shell terminal buffers.
 
 ## Installation
 
@@ -47,59 +52,79 @@ into a single, modular plugin designed to be replaced piece by piece when
 }
 ```
 
-## Setup
+### Setup
 
 ```lua
 require("mojo").setup({
-  debug = true,
-  lsp = {
-    enabled = true,
-  },
-  format = {
-    enabled = true,
-  },
-  treesitter = {
-    enabled = true,
-  },
-  terminal = {
-    enabled = true,
-  },
+  debug = true,       -- writes mojo-debug.log to cwd
+  lsp = { enabled = true },
+  format = { enabled = true },
+  treesitter = { enabled = true },
+  terminal = { enabled = true },
 })
 ```
 
-## LazyVim adapters
+### LazyVim adapters
 
 ```lua
 local mojo = require("mojo.adapters.lazyvim")
 
-{
-  "nvim-treesitter/nvim-treesitter",
-  opts = function(_, opts)
-    return mojo.treesitter(opts)
-  end,
+-- nvim-treesitter
+{ "nvim-treesitter/nvim-treesitter",
+  opts = function(_, opts) return mojo.treesitter(opts) end,
 }
 
-{
-  "neovim/nvim-lspconfig",
-  opts = function(_, opts)
-    return mojo.lsp(opts)
-  end,
+-- nvim-lspconfig
+{ "neovim/nvim-lspconfig",
+  opts = function(_, opts) return mojo.lsp(opts) end,
 }
 
+-- conform.nvim
+{ "stevearc/conform.nvim",
+  opts = function(_, opts) return mojo.format(opts) end,
+}
+```
+
+## Configuration
+
+All options and their defaults:
+
+```lua
 {
-  "stevearc/conform.nvim",
-  opts = function(_, opts)
-    return mojo.format(opts)
-  end,
+  filetype = { enabled = true },
+  terminal = {
+    enabled = true,
+    auto_activate = true,
+    delay_ms = 200,
+  },
+  treesitter = {
+    enabled = true,
+    parser = {
+      install_info = {
+        url = "https://github.com/oaustegard/tree-sitter-mojo",
+        revision = "v1.0",
+        queries = "queries",
+      },
+      filetype = "mojo",
+      tier = 2,
+    },
+  },
+  lsp = {
+    enabled = false,
+    root_markers = { "pixi.toml", "pyproject.toml", ".pixi", ".venv" },
+  },
+  format = {
+    enabled = false,
+    formatter_name = "mojo",
+  },
+  debug = false,
+  hooks = {},
 }
 ```
 
 ## Notes
 
-- The plugin does not ship the Mojo LSP binary.
-- The plugin does not bundle the official Mojo toolchain.
+- The plugin does not ship the Mojo LSP binary or official toolchain.
 - When `debug = true`, logs are written to `mojo-debug.log` in the current working directory.
 - The plugin auto-activates Pixi or venv project environments before Mojo LSP startup and in terminal buffers.
 - Treesitter is isolated behind `lua/mojo/treesitter.lua` so the parser backend can be replaced later.
-- All public APIs are annotated with EmmyLua types (`Mojo-lang.*`).
-- Full design spec at `docs/superpowers/specs/2026-06-05-mojo.nvim-design.md`.
