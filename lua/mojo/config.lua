@@ -8,6 +8,7 @@
 
 --- @class Mojo-lang.TreesitterConfig
 --- @field enabled boolean|nil
+--- @field adapter (fun(opts: Mojo-lang.TreesitterConfig): boolean)|nil
 
 --- @class Mojo-lang.LspConfig
 --- @field enabled boolean|nil
