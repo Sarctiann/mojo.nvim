@@ -96,17 +96,15 @@ Deferred until test infrastructure (P1 #4) is in place.
 
 ---
 
-### 6. Fill missing EmmyLua type annotations
+### ~~6. Fill missing EmmyLua type annotations~~ ✅
 
 **Rule violated:** Coding Conventions — "All public functions MUST have
 EmmyLua `--- @param`, `--- @return` annotations."
 
-**Missing in:**
-
-- `lua/mojo/filetype.lua` — `M.setup()` has no annotations at all
-- `lua/mojo/treesitter.lua` — `M.setup()` missing `@return`, `compile_parser` and `stale_parser` missing `@return`
-- `lua/mojo/terminal.lua` — `M.setup()` has no `@return`
-- `lua/mojo/format.lua` — `M.opts()` has no `@return` (opts table shape)
+**Resolution:** Added missing annotations to `filetype.lua`, `terminal.lua`,
+and `format.lua`. `treesitter.lua` public functions (`compile_parser`,
+`register`, `stale_parser`) already had `@return` annotations from the
+adapter extraction refactor.
 
 ---
 
