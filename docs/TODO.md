@@ -161,8 +161,8 @@ Each tool follows: Research → Adapter (if needed) → README section.
 | Tool           | Needs adapter? | Needs README? | Notes                                                                                                                                                                                                                           |
 | -------------- | -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | nvim-lint      | No             | Yes           | Mojo has no linter beyond `mojo format` and LSP diagnostics. nvim-lint would need a Mojo linter binary that doesn't exist yet. Could point users to LSP diagnostics via `diagnosticls` or `null-ls` bridge, but that's fragile. |
-| nvim-cmp       | No             | No            | Works automatically — receives LSP completions from `mojo-lsp-server` via the standard `nvim_lsp` source. Already noted in README.                                                                                              |
-| blink.cmp      | No             | No            | Same as nvim-cmp — works via LSP protocol. No adapter needed.                                                                                                                                                                   |
+| nvim-cmp       | ✅ Done         | ✅ Done        | `adapters/nvim-cmp.lua` — registers custom cmp source (`mojo`) + `nvim_lsp` for mojo filetype.                                                                                                                                  |
+| blink.cmp      | ✅ Done         | ✅ Done        | `adapters/blink.lua` — configures blink via `blink.compat`, falls back to nvim-cmp adapter. Requires `blink.compat` installed.                                                                                                    |
 | LuaSnip        | No             | Yes (minimal) | Works with Treesitter integration for snippet expansion. Could document Mojo snippets if user creates them, but no adapter needed.                                                                                              |
 | nvim-dap       | Yes            | Yes           | Mojo has no DAP adapter yet. Blocked on Modular releasing a debug adapter. Could document how to set up when one exists.                                                                                                        |
 | neotest        | Yes            | Yes           | Mojo has no test runner adapter yet. Blocked on `mojo test` stabilizing. Could document future integration.                                                                                                                     |
@@ -176,13 +176,15 @@ Each tool follows: Research → Adapter (if needed) → README section.
 
 **Tools that need action now:**
 
-- nvim-cmp, blink.cmp, telescope.nvim, which-key.nvim, trouble.nvim → already in README, no change
-- LuaSnip, lualine.nvim → minimal README note (no adapter)
+- nvim-cmp, blink.cmp → adapters done, README updated
+- LuaSnip → snippets served through completion adapters (no separate adapter needed)
+- telescope.nvim, which-key.nvim, trouble.nvim → already in README, no change
+- lualine.nvim → minimal README note (no adapter)
 - AstroNvim, NvChad, kickstart.nvim → README sections showing config
 - nvim-dap, neotest → blocked on upstream (Modular debug adapter / stable `mojo test`)
 - nvim-lint → blocked (no Mojo linter binary exists)
 
-**Adapters to create: None currently needed.**
+**Adapters created:** `adapters/nvim-cmp.lua`, `adapters/blink.lua`, `completion.lua`.
 
 ---
 
