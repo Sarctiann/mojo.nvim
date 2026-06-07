@@ -13,6 +13,7 @@ function M.setup(user_config)
 	local opts = config.setup(user_config)
 	M.hooks = hooks.merge(opts.hooks)
 
+	debug.setup({ debug = opts.debug })
 	debug.log("setup", function()
 		return {
 			debug = opts.debug or false,

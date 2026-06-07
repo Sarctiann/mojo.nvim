@@ -1,6 +1,7 @@
-local config = require("mojo.config")
-
 local M = {}
+
+--- @type boolean
+local enabled = false
 
 --- @return string|osdate
 local function timestamp()
@@ -33,10 +34,17 @@ local function format_data(data)
 	return table.concat(parts, " ")
 end
 
+--- @param opts { debug: boolean }|nil
+--- @return nil
+function M.setup(opts)
+	opts = opts or {}
+	enabled = opts.debug or false
+end
+
 --- @param event string
 --- @param data_fn fun(): table<string, any>
 function M.log(event, data_fn)
-	if not config.options.debug then
+	if not enabled then
 		return
 	end
 
