@@ -118,14 +118,11 @@ the current adapter-based architecture.
 
 ## P2 — Quality & Completeness
 
-### 8. Support `🔥` extension in autocmd pattern
+### ~~8. Support `🔥` extension in autocmd pattern~~ ✅
 
-**Bug:** `lua/mojo/init.lua:29` only matches `*.mojo` for env activation,
-but `filetype.lua` registers both `.mojo` and `🔥` files. If `🔥` is already
-registered, the filetype detection will work, but env activation won't trigger
-automatically for `🔥` files.
-
-**Fix:** Add `🔥` (or `*.🔥`) to the autocmd pattern.
+**Resolution:** Fixed as part of P0 #3 refactor — the env activation autocmd
+was moved from `init.lua` to `filetype.lua`, which already uses the pattern
+`{ "*.mojo", "*.🔥" }`.
 
 ---
 
