@@ -1,3 +1,11 @@
+--- @class Mojo-lang.DetectedEnv
+--- @field type "pixi"|"venv"
+--- @field root string
+--- @field env_name string|nil
+--- @field env_dir string|nil
+--- @field bin_dir string|nil
+--- @field activate_cmd string|nil
+
 --- @class Mojo-lang.FiletypeConfig
 --- @field enabled boolean|nil
 
