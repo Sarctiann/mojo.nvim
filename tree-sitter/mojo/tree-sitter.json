@@ -1,0 +1,24 @@
+{
+  "grammars": [
+    {
+      "name": "mojo",
+      "camelcase": "Mojo",
+      "scope": "source.mojo",
+      "path": ".",
+      "file-types": ["mojo", "🔥"],
+      "highlights": "queries/highlights.scm",
+      "injection-regex": "mojo"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Mojo grammar for tree-sitter (self-hosted in mojo.nvim)",
+    "links": {
+      "repository": "https://github.com/Sarctiann/mojo.nvim"
+    }
+  },
+  "bindings": {
+    "c": true
+  }
+}

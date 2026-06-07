@@ -1,0 +1,12 @@
+{
+  "name": "tree-sitter-mojo",
+  "version": "0.25.0",
+  "description": "Mojo grammar for tree-sitter (self-hosted in mojo.nvim)",
+  "license": "MIT",
+  "scripts": {
+    "test": "tree-sitter test"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.26"
+  }
+}

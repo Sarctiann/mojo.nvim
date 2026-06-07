@@ -15,25 +15,29 @@
 
 ## P0 — Sovereignty Violations (must fix)
 
-### 1. Re-implement tree-sitter-mojo parser in-repo
+### ~~1. Re-implement tree-sitter-mojo parser in-repo~~ ✅
 
 **Rule violated:** #3 (No Third-Party Mojo Plugin Dependencies)
 
-**Why:** `lua/mojo/config.lua:57` and `lua/mojo/treesitter.lua:13` reference
-`github.com/oaustegard/tree-sitter-mojo` — a third-party Mojo-specific parser.
-The plugin cannot be self-sufficient for Treesitter while depending on an
-external parser repo.
+**Resolution:** The tree-sitter-mojo grammar was adopted into `tree-sitter/mojo/`
+as a self-hosted copy. Updated for Mojo 1.0 syntax: `struct`/`trait`/`thin`/`abi`/
+`register_passable` reserved keywords, `capture_list`/`capture_item` productions,
+restructured `function_definition` for all effect/raises/return orderings,
+bare `raises` keyword, `grammar.cjs` → `grammar.js` rename.
 
-**Task:** Fork/reimplement the Mojo Treesitter grammar in this repository so
-the parser is built and maintained here. The existing `treesitter.lua` module
-should load the local parser instead of referencing an external URL.
+`treesitter.lua` now manages the full parser lifecycle: stale grammar detection,
+auto-rebuild with `cc`, query file sync, `:MojoRebuildParser` command. No longer
+depends on `TSInstall mojo`.
 
-**Files affected:**
+**Files changed:**
 
-- `lua/mojo/config.lua` — remove `url`/`revision` from defaults
-- `lua/mojo/treesitter.lua` — rewrite to use local parser
-- `lua/mojo/init.lua` — update wiring if API changes
-- `README.md` — update to reflect self-hosted parser
+- `tree-sitter/mojo/` — grammar source, generated parser, queries
+- `lua/mojo/treesitter.lua` — self-managed parser lifecycle (auto-rebuild, `:MojoRebuildParser`)
+- `lua/mojo/env.lua` — `clear` on terminal activation
+- `README.md` — auto-rebuild docs
+- `docs/superpowers/specs/2026-06-06-mojo-grammar-1.0-update-design.md`
+
+**Branch:** `feat/self-host-treesitter-parser`
 
 ---
 
@@ -140,7 +144,7 @@ EmmyLua `--- @param`, `--- @return` annotations."
 **Missing in:**
 
 - `lua/mojo/filetype.lua` — `M.setup()` has no annotations at all
-- `lua/mojo/treesitter.lua` — `M.setup()` has no `@return`
+- `lua/mojo/treesitter.lua` — `M.setup()` missing `@return`, `compile_parser` and `stale_parser` missing `@return`
 - `lua/mojo/terminal.lua` — `M.setup()` has no `@return`
 - `lua/mojo/format.lua` — `M.opts()` has no `@return` (opts table shape)
 

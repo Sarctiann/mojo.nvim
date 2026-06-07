@@ -1,3 +1,9 @@
 .DS_Store
-*.log
 */.DS_Store
+Cargo.lock
+package-lock.json
+node_modules
+build
+/target/
+parser.so
+*.log

@@ -6,19 +6,8 @@
 --- @field auto_activate boolean|nil
 --- @field delay_ms number|nil
 
---- @class Mojo-lang.TreesitterInstallInfo
---- @field url string
---- @field revision string
---- @field queries string
-
---- @class Mojo-lang.TreesitterParserConfig
---- @field install_info Mojo-lang.TreesitterInstallInfo
---- @field filetype string
---- @field tier integer
-
 --- @class Mojo-lang.TreesitterConfig
 --- @field enabled boolean|nil
---- @field parser Mojo-lang.TreesitterParserConfig|nil
 
 --- @class Mojo-lang.LspConfig
 --- @field enabled boolean|nil
@@ -52,15 +41,6 @@ M.defaults = {
 	},
 	treesitter = {
 		enabled = true,
-		parser = {
-			install_info = {
-				url = "https://github.com/oaustegard/tree-sitter-mojo",
-				revision = "v1.0",
-				queries = "queries",
-			},
-			filetype = "mojo",
-			tier = 2,
-		},
 	},
 	lsp = {
 		enabled = false,
