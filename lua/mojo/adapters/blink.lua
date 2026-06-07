@@ -2,9 +2,6 @@ local M = {}
 
 local completion = require("mojo.completion")
 
-local KWORD = 14
-local FUNC = 3
-local CLASS = 7
 local SNIP = 15
 local PLAIN_TEXT = 1
 local SNIPPET = 2
@@ -56,10 +53,24 @@ function M.new(opts)
 end
 
 function M:get_trigger_characters()
-	return { ".", ":" }
+	return {}
 end
 
-function M:get_completions(_context, callback)
+function M:get_completions(context, callback)
+	local line = context.line or ""
+	local col = context.cursor and context.cursor.column or 0
+	if col > 0 then
+		local char_before = line:sub(col, col)
+		if char_before:match("[%.:]") then
+			callback({
+				items = {},
+				is_incomplete_backward = false,
+				is_incomplete_forward = false,
+			})
+			return
+		end
+	end
+
 	callback({
 		items = get_items(),
 		is_incomplete_backward = false,
@@ -76,7 +87,7 @@ function M.opts(opts)
 	return {
 		sources = {
 			completion = {
-				enabled_providers = { "lsp", "mojo", "path", "buffer" },
+				enabled_providers = { "lsp", "mojo", "snippets", "path", "buffer" },
 			},
 		},
 		providers = {
@@ -115,3 +126,4 @@ function M.setup(opts)
 end
 
 return M
+

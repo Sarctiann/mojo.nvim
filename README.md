@@ -181,6 +181,10 @@ Registers the self-hosted Mojo parser grammar with `nvim-treesitter`.
 Provides Mojo keywords, builtins, stdlib types, and snippets through your
 completion engine. **Opt-in** — set `completion = { enabled = true }` in setup.
 
+The static source supplies keyword/builtin/type/snippet completions at word
+boundaries. After `.`, it returns nothing — letting `mojo-lsp-server` provide
+contextual method/property completions through the LSP protocol.
+
 ```lua
 require("mojo").setup({
   completion = { enabled = true },

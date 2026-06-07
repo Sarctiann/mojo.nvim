@@ -1,5 +1,7 @@
 local M = {}
 
+local completion = require("mojo.completion")
+
 --- @param opts Mojo-lang.CompletionConfig|nil
 --- @return boolean
 function M.setup(opts)
@@ -13,7 +15,6 @@ function M.setup(opts)
 		return false
 	end
 
-	local completion = require("mojo.completion")
 	local source = {}
 
 	function source.new()
@@ -21,10 +22,15 @@ function M.setup(opts)
 	end
 
 	function source:get_trigger_characters()
-		return { ".", ":" }
+		return {}
 	end
 
-	function source:complete(_, callback)
+	function source:complete(request, callback)
+		local line = request.context.cursor_before_line or ""
+		if line:match("[%.:]%s*$") then
+			callback({ items = {} })
+			return
+		end
 		callback({ items = completion.all_items() })
 	end
 
