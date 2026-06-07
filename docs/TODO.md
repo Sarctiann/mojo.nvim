@@ -188,8 +188,13 @@ Process: research → create adapter (if needed) → add README section → chec
 
 ---
 
-### 12. General code review
+### ~~12. General code review~~ ✅
 
-- Check for macOS-specific assumptions (e.g., `DYLD_FALLBACK_LIBRARY_PATH`)
-- Ensure all `pcall`-guarded requires have correct fallback behavior
-- Remove any dead code from initial scaffolding
+**Findings addressed:**
+
+- macOS-specific `DYLD_FALLBACK_LIBRARY_PATH` in `env/activate.lua` — now uses
+  `vim.fn.has("mac")` to select `DYLD_FALLBACK_LIBRARY_PATH` (macOS) or
+  `LD_LIBRARY_PATH` (Linux) appropriately.
+- All `pcall`-guarded requires (`lspconfig`, `conform`, `nvim-treesitter.parsers`)
+  have correct fallback behavior (return `false`, skip silently).
+- No dead code found — all modules are consumed by `init.lua` or adapters.
