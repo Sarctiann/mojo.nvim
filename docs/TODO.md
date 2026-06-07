@@ -12,28 +12,28 @@
 
 ## P1 — Missing Infrastructure
 
-### 4. Add test infrastructure and initial tests
+### 1. Add test infrastructure and initial tests
 
 Deferred until core features stabilize and the plugin API solidifies.
 
-### 5. Add CI configuration
+### 2. Add CI configuration
 
-Deferred until test infrastructure (P1 #4) is in place.
+Deferred until test infrastructure (P1 #1) is in place.
 
 ---
 
 ## P2 — Quality & Completeness
 
-### 13. Support popular Neovim tools with README documentation
+### 3. Support popular Neovim tools with README documentation
 
 **Scope:** Ongoing — new tools are added here as they're identified.
 
-| Tool           | Needs adapter? | Needs README? | Notes |
-| -------------- | -------------- | ------------- | ----- |
-| lualine.nvim   | No             | Yes (minimal) | Could document Mojo filetype icon |
-| AstroNvim      | No             | Yes           | Docs section showing config format |
-| NvChad         | No             | Yes           | Docs section showing config format |
+| Tool           | Needs adapter? | Needs README? | Notes                               |
+| -------------- | -------------- | ------------- | ----------------------------------- |
+| lualine.nvim   | No             | Yes (minimal) | Could document Mojo filetype icon   |
+| AstroNvim      | No             | Yes           | Docs section showing config format  |
+| NvChad         | No             | Yes           | Docs section showing config format  |
 | kickstart.nvim | No             | Yes           | Docs section showing minimal config |
-| nvim-dap       | Blocked        | Blocked       | No Mojo DAP adapter exists yet |
-| neotest        | Blocked        | Blocked       | `mojo test` not stable yet |
-| nvim-lint      | Blocked        | Blocked       | No Mojo linter binary exists |
+| nvim-dap       | Blocked        | Blocked       | No Mojo DAP adapter exists yet      |
+| neotest        | Blocked        | Blocked       | `mojo test` not stable yet          |
+| nvim-lint      | Blocked        | Blocked       | No Mojo linter binary exists        |
