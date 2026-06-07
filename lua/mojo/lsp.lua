@@ -41,22 +41,4 @@ function M.opts(user_opts)
 	return opts
 end
 
---- @param user_opts Mojo-lang.LspConfig|nil
---- @return boolean
-function M.setup(user_opts)
-	local ok, lspconfig = pcall(require, "lspconfig")
-	if not ok then
-		debug.log("lsp_setup_skip", function()
-			return { reason = "lspconfig_missing" }
-		end)
-		return false
-	end
-
-	debug.log("lsp_setup", function()
-		return { server = "mojo" }
-	end)
-	lspconfig.mojo.setup(M.opts(user_opts))
-	return true
-end
-
 return M
