@@ -126,25 +126,21 @@ was moved from `init.lua` to `filetype.lua`, which already uses the pattern
 
 ---
 
-### 9. Split env.lua into separate concerns
+### ~~9. Split env.lua into separate concerns~~ ✅
 
-**Why:** `lua/mojo/env.lua` currently handles:
+**Why:** `lua/mojo/env.lua` violated single-concern-per-module.
 
-- Root directory discovery
-- Pixi environment detection
-- Virtualenv detection
-- Binary discovery (`mojo`, `mojo-lsp-server`)
-- PATH and environment variable manipulation
-- Terminal activation
+**Resolution:** Split into `lua/mojo/env/` directory:
+- `env/util.lua` — shared filesystem/environment helpers
+- `env/detect.lua` — environment detection and caching
+- `env/activate.lua` — PATH/env variable manipulation, terminal activation
+- `env/bin.lua` — binary discovery (`get_mojo_cmd`, `get_lsp_cmd`)
+- `env/init.lua` — backward-compatible re-export of full public API
 
-This violates the single-concern-per-module principle.
+`require("mojo.env")` still works; no consumer changes needed.
+`DetectedEnv` class definition moved to `config.lua` per AGENTS.md convention.
 
-**Task:** Split into:
-
-- `lua/mojo/env/detect.lua` — detection logic
-- `lua/mojo/env/activate.lua` — PATH/env manipulation and terminal activation
-- `lua/mojo/env/bin.lua` — binary discovery (`get_mojo_cmd`, `get_lsp_cmd`)
-- Or keep a single `env.lua` but extract helpers into private submodules
+**Branch:** `refactor/split-env`
 
 ---
 
