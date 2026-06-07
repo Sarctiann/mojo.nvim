@@ -32,6 +32,10 @@ activates them for LSP, formatting, and terminal buffers transparently.
 Registers the self-hosted Mojo parser grammar with `nvim-treesitter`.
 The grammar files live in `tree-sitter/mojo/` — no external parser repo required.
 
+When a `.mojo` file is opened, the plugin checks if the grammar source (`grammar.js`)
+is newer than the compiled parser (`mojo.so`). If so, it automatically recompiles
+and reloads. Use `:MojoRebuildParser` to rebuild manually.
+
 ### LSP
 
 Configures `mojo-lsp-server` via `nvim-lspconfig` with environment-aware binary
@@ -227,7 +231,7 @@ All options and their defaults:
 - The plugin does not ship the Mojo LSP binary or official toolchain.
 - When `debug = true`, logs are written to `mojo-debug.log` in the current working directory.
 - The plugin auto-activates Pixi or venv project environments before Mojo LSP startup and in terminal buffers.
-- Treesitter is isolated behind `lua/mojo/treesitter.lua`. The parser grammar is self-hosted in `tree-sitter/mojo/`.
+- Treesitter is isolated behind `lua/mojo/treesitter.lua`. The parser grammar is self-hosted in `tree-sitter/mojo/`. The plugin auto-rebuilds the parser when the grammar source changes; `:MojoRebuildParser` is available for manual rebuilds.
 
 ### Tools that work without Mojo-specific config
 

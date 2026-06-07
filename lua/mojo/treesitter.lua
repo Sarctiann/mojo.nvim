@@ -8,6 +8,36 @@ local function plugin_root()
 end
 
 --- @return boolean
+local function compile_parser()
+	local root = plugin_root()
+	local grammar_dir = root .. "/tree-sitter/mojo"
+	local parser_dest = vim.fn.expand("~/.local/share/nvim/site/parser/mojo.so")
+	local queries_dest = vim.fn.expand("~/.local/share/nvim/site/queries/mojo")
+
+	vim.fn.mkdir(vim.fn.fnamemodify(parser_dest, ":h"), "p")
+	vim.fn.mkdir(queries_dest, "p")
+
+	local cmd = string.format(
+		"cc -shared -fPIC -O2 -o %s %s/src/parser.c %s/src/scanner.c -I%s/src",
+		vim.fn.shellescape(parser_dest),
+		vim.fn.shellescape(grammar_dir),
+		vim.fn.shellescape(grammar_dir),
+		vim.fn.shellescape(grammar_dir)
+	)
+	local result = vim.fn.system(cmd)
+	if vim.v.shell_error ~= 0 then
+		vim.notify("[mojo.nvim] Compilation failed:\n" .. result, vim.log.levels.ERROR)
+		return false
+	end
+
+	for _, qf in ipairs(vim.fn.readdir(grammar_dir .. "/queries")) do
+		vim.fn.writefile(vim.fn.readfile(grammar_dir .. "/queries/" .. qf), queries_dest .. "/" .. qf)
+	end
+
+	return true
+end
+
+--- @return boolean
 function M.register()
 	local ok, parsers = pcall(require, "nvim-treesitter.parsers")
 	if not ok then
@@ -30,6 +60,19 @@ function M.register()
 	}
 
 	return true
+end
+
+--- @return boolean
+local function stale_parser()
+	local root = plugin_root()
+	local grammar = root .. "/tree-sitter/mojo/grammar.js"
+	local parser = vim.fn.expand("~/.local/share/nvim/site/parser/mojo.so")
+	local gstat = vim.uv.fs_stat(grammar)
+	local pstat = vim.uv.fs_stat(parser)
+	if not gstat or not pstat then
+		return true
+	end
+	return gstat.mtime.sec > pstat.mtime.sec
 end
 
 --- @param opts Mojo-lang.TreesitterConfig|nil
@@ -56,35 +99,22 @@ function M.setup(opts)
 		pattern = "mojo",
 		group = group,
 		callback = function()
-			local ok, config = pcall(require, "nvim-treesitter.config")
-			if not ok then
-				pcall(vim.treesitter.start, 0, "mojo")
-				return
+			if stale_parser() then
+				vim.notify("[mojo.nvim] Rebuilding stale tree-sitter parser...", vim.log.levels.INFO)
+				if compile_parser() then
+					vim.cmd("edit!")
+				end
 			end
-			local installed = config.get_installed()
-			if vim.tbl_contains(installed, "mojo") then
-				pcall(vim.treesitter.start, 0, "mojo")
-				return
-			end
-
-			vim.schedule(function()
-				vim.cmd("TSInstall mojo")
-				local install_dir = config.get_install_dir("parser")
-				local done = false
-				local timer = vim.uv.new_timer()
-				timer:start(500, 500, vim.schedule_wrap(function()
-					if done then
-						return
-					end
-					if vim.uv.fs_stat(install_dir .. "/mojo.so") then
-						done = true
-						timer:close()
-						pcall(vim.cmd, "edit!")
-					end
-				end))
-			end)
+			pcall(vim.treesitter.start, 0, "mojo")
 		end,
 	})
+
+	vim.api.nvim_create_user_command("MojoRebuildParser", function()
+		if compile_parser() then
+			vim.notify("[mojo.nvim] Parser rebuilt.", vim.log.levels.INFO)
+			vim.cmd("edit!")
+		end
+	end, { desc = "Rebuild the self-hosted tree-sitter Mojo parser" })
 end
 
 return M

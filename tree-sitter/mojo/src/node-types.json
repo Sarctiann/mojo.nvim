@@ -958,6 +958,36 @@
     }
   },
   {
+    "type": "capture_item",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "capture_list",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "capture_item",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "case_clause",
     "named": true,
     "fields": {
@@ -2020,9 +2050,13 @@
       }
     },
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "capture_list",
+          "named": true
+        },
         {
           "type": "raises_clause",
           "named": true
@@ -2910,7 +2944,7 @@
     "fields": {
       "error_type": {
         "multiple": false,
-        "required": false,
+        "required": true,
         "types": [
           {
             "type": "type",
@@ -3828,6 +3862,10 @@
     "named": false
   },
   {
+    "type": "\"C\"",
+    "named": false
+  },
+  {
     "type": "%",
     "named": false
   },
@@ -4001,6 +4039,10 @@
   },
   {
     "type": "__future__",
+    "named": false
+  },
+  {
+    "type": "abi",
     "named": false
   },
   {
@@ -4190,10 +4232,6 @@
     "named": false
   },
   {
-    "type": "owned",
-    "named": false
-  },
-  {
     "type": "pass",
     "named": false
   },
@@ -4218,6 +4256,10 @@
     "named": false
   },
   {
+    "type": "register_passable",
+    "named": false
+  },
+  {
     "type": "return",
     "named": false
   },
@@ -4231,6 +4273,10 @@
   },
   {
     "type": "struct",
+    "named": false
+  },
+  {
+    "type": "thin",
     "named": false
   },
   {

@@ -27,17 +27,17 @@
   function: (identifier) @function.builtin)
  (#match?
    @function.builtin
-   "^(abort|abs|all|any|ascii|atof|atol|bin|breakpoint|chr|constrained|debug_assert|divmod|enumerate|external_call|hash|hex|input|iter|len|map|materialize|max|min|next|oct|open|ord|partition|pow|print|range|rebind|rebind_var|reflect|repr|reversed|round|slice|sort|swap|trait_downcast|trait_downcast_var|zip)$"))
+    "^(abort|abs|all|any|ascii|atof|atol|bin|breakpoint|chr|constrained|debug_assert|divmod|enumerate|external_call|hash|hex|input|iter|len|map|materialize|max|min|next|oct|open|ord|partition|pow|print|range|rebind|rebind_var|reflect|repr|reversed|round|slice|sort|swap|zip)$"))
 
 ; Mojo built-in decorators (recognized before the generic @function below)
 
 ((decorator
   (identifier) @attribute.builtin)
- (#match? @attribute.builtin "^(fieldwise_init|register_passable|parameter|value|always_inline|noinline|staticmethod|nonmaterializable)$"))
+ (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod)$"))
 
 ((decorator
   (call function: (identifier) @attribute.builtin))
- (#match? @attribute.builtin "^(fieldwise_init|register_passable|parameter|value|always_inline|noinline|staticmethod|nonmaterializable)$"))
+ (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod)$"))
 
 ; Function calls
 
@@ -163,17 +163,22 @@
   "comptime"
 ] @keyword
 
-; `raises` is wrapped in a single-token rule (raises_clause) by the
-; grammar, so highlight it via the rule rather than the bare literal.
-
 (raises_clause) @keyword
+
+"raises" @keyword
+
+; Mojo 1.0 function effects — appear in function signatures after parameters.
+
+[
+  "thin"
+  "register_passable"
+] @keyword
 
 ; Mojo argument-convention keywords. Appear only inside `mojo_parameter`
 ; (see grammar.js: argument_convention). Captured as @keyword.modifier so
 ; themes can color them distinctly from control-flow keywords.
 
 [
-  "owned"
   "borrowed"
   "inout"
   "mut"
@@ -182,3 +187,10 @@
   "out"
   "deinit"
 ] @keyword.modifier
+
+; Capture list punctuation — `{` and `}` in capture context is syntactically
+; distinct from dictionary/block braces.
+
+(capture_list
+  "{" @punctuation.bracket
+  "}" @punctuation.bracket)
