@@ -28,6 +28,10 @@
 --- @field formatter_name string|nil
 --- @field adapter (fun(opts: Mojo-lang.FormatConfig): boolean)|nil
 
+--- @class Mojo-lang.CompletionConfig
+--- @field enabled boolean|nil
+--- @field adapter (fun(opts: Mojo-lang.CompletionConfig): boolean)|nil
+
 --- @class Mojo-lang.Hooks
 --- @field resolve_root (fun(path: string|nil, markers: string[]|nil): string|nil)|nil
 
@@ -37,6 +41,7 @@
 --- @field treesitter Mojo-lang.TreesitterConfig|nil
 --- @field lsp Mojo-lang.LspConfig|nil
 --- @field format Mojo-lang.FormatConfig|nil
+--- @field completion Mojo-lang.CompletionConfig|nil
 --- @field debug boolean|nil
 --- @field hooks Mojo-lang.Hooks|nil
 
@@ -60,6 +65,9 @@ M.defaults = {
 	format = {
 		enabled = false,
 		formatter_name = "mojo",
+	},
+	completion = {
+		enabled = false,
 	},
 	debug = false,
 	hooks = {},

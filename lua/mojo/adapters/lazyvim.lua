@@ -23,4 +23,10 @@ function M.format(opts)
 	return require("mojo.format").opts(opts)
 end
 
+--- @param opts Mojo-lang.CompletionConfig|nil
+--- @return table
+function M.completion(opts)
+	return require("mojo.adapters.blink").opts(opts)
+end
+
 return M
