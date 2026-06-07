@@ -41,60 +41,46 @@ depends on `TSInstall mojo`.
 
 ---
 
-### 2. Extract generic-plugin integration from core modules into adapters
+### ~~2. Extract generic-plugin integration from core modules into adapters~~ ✅
 
 **Rule violated:** #4 (Adapter Pattern for Generic Extensions)
 
-**Why:** Three core modules directly call `setup()` on generic plugins instead
-of producing pure options consumed by adapters:
+**Resolution:** Core modules now only produce pure options/state — all side-effect
+calls (`lspconfig.mojo.setup()`, `conform.setup()`, `nvim-treesitter` registration,
+autocmds, `:MojoRebuildParser`) moved to adapter modules. `init.lua` calls adapters
+(default) or a user-supplied `adapter` function; core modules are dependency-free.
 
-| Module                    | Direct call to                     | Line |
-| ------------------------- | ---------------------------------- | ---- |
-| `lua/mojo/lsp.lua`        | `lspconfig.mojo.setup()`           | 55   |
-| `lua/mojo/format.lua`     | `conform.setup()`                  | 40   |
-| `lua/mojo/treesitter.lua` | `nvim-treesitter.parsers` mutation | 11   |
+**Files changed:**
 
-**Fix:** Make `lsp.lua`, `format.lua`, and `treesitter.lua` pure option/state
-builders. Move every `setup()` call that wires to a generic plugin into
-corresponding adapter modules under `lua/mojo/adapters/`:
-
-- `lua/mojo/adapters/lspconfig.lua` — wraps `lspconfig.mojo.setup()`
-- `lua/mojo/adapters/conform.lua` — wraps `conform.setup()`
-- `lua/mojo/adapters/treesitter.lua` — wraps `nvim-treesitter` registration
-
-The `init.lua` entrypoint should call adapters when the corresponding feature
-is enabled, not call the core modules' `setup()` directly.
-
-**Files affected:**
-
-- `lua/mojo/lsp.lua`
-- `lua/mojo/format.lua`
-- `lua/mojo/treesitter.lua`
-- `lua/mojo/init.lua`
+- `lua/mojo/lsp.lua` — removed `M.setup()`, pure option builder
+- `lua/mojo/format.lua` — removed `M.setup()`, pure option builder
+- `lua/mojo/treesitter.lua` — removed `M.setup()`, exposes `register()`, `compile_parser()`, `stale_parser()`
+- `lua/mojo/init.lua` — calls adapters, supports `adapter` override per feature
 - Create: `lua/mojo/adapters/lspconfig.lua`
 - Create: `lua/mojo/adapters/conform.lua`
 - Create: `lua/mojo/adapters/treesitter.lua`
-- `docs/superpowers/specs/2026-06-05-mojo.nvim-design.md` — update architecture
+- `lua/mojo/config.lua` — added `adapter` fields to type definitions
+- `docs/superpowers/specs/2026-06-05-mojo.nvim-design.md` — updated architecture
+
+**Branch:** `refactor/extract-adapters`
 
 ---
 
-### 3. Move business logic out of init.lua
+### ~~3. Move business logic out of init.lua~~ ✅
 
 **Rule violated:** Module Structure (AGENTS.md § "The entrypoint (`init.lua`)
 only wires modules together; it contains no business logic.")
 
-**Why:** `lua/mojo/init.lua:28-37` creates an autocmd directly for env
-activation. This is business logic, not wiring.
+**Resolution:** The `BufReadPre`/`BufNewFile` autocmd for env activation moved
+from `init.lua` into `filetype.lua`, which also gained the `🔥` extension
+pattern. `init.lua` now only wires modules and adapters.
 
-**Fix:** Move the `BufReadPre`/`BufNewFile` autocmd into `filetype.lua`
-(which already registers filetype detection for the same purpose) or into
-`env.lua`.
+**Files changed:**
 
-**Files affected:**
+- `lua/mojo/init.lua` — removed autocmd block, calls adapters
+- `lua/mojo/filetype.lua` — added env activation autocmd
 
-- `lua/mojo/init.lua` — remove autocmd block
-- `lua/mojo/filetype.lua` — add autocmd for env activation
-- `lua/mojo/env.lua` — export a setup function if needed
+**Branch:** `refactor/extract-adapters`
 
 ---
 
