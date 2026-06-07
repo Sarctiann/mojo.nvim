@@ -49,6 +49,7 @@ function M.register()
 
 	parsers.mojo = {
 		install_info = {
+			url = "https://github.com/Sarctiann/mojo.nvim", ---@diagnostic disable-line: missing-fields -- path takes precedence
 			path = root,
 			location = grammar_dir,
 			files = { "src/parser.c", "src/scanner.c" },

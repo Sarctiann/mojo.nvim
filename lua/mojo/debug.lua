@@ -4,7 +4,7 @@ local M = {}
 
 --- @return string|osdate
 local function timestamp()
-  return os.date("%Y-%m-%d %H:%M:%S")
+	return os.date("%Y-%m-%d %H:%M:%S")
 end
 
 --- @param data table<string, any>|nil
