@@ -144,9 +144,9 @@ was moved from `init.lua` to `filetype.lua`, which already uses the pattern
 
 ---
 
-### 10. Add .editorconfig
+### ~~10. Add .editorconfig~~ ✅
 
-**Why:** No `.editorconfig` means inconsistent editor settings for contributors.
+**Resolution:** Added `.editorconfig` with tabs for Lua, spaces for JSON/YAML/TOML/markdown/queries, LF line endings, UTF-8, trailing whitespace trimming.
 
 ---
 
