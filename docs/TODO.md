@@ -86,39 +86,13 @@ pattern. `init.lua` now only wires modules and adapters.
 
 ## P1 — Missing Infrastructure
 
-### 4. Add test infrastructure and initial tests
+### ~~4. Add test infrastructure and initial tests~~ ⏸️ On hold
 
-**Why:** No tests exist. Every feature needs coverage before refactoring.
+Deferred until core features stabilize and the plugin API solidifies.
 
-**Task:** Choose a Neovim test runner (plenary.nvim's test harness is the de
-facto standard). Add tests for at minimum:
+### ~~5. Add CI configuration~~ ⏸️ On hold
 
-- `env.lua` — detection logic (pixi vs venv), PATH manipulation
-- `filetype.lua` — filetype registration
-- `config.lua` — merge logic
-- `hooks.lua` — merge logic
-- `debug.lua` — log output
-
-**Files created:**
-
-- `tests/` directory
-- `tests/env_spec.lua`
-- `tests/filetype_spec.lua`
-- `tests/config_spec.lua`
-- `tests/hooks_spec.lua`
-- `tests/debug_spec.lua`
-
----
-
-### 5. Add CI configuration
-
-**Why:** No CI means no automated test runs or linting.
-
-**Task:** Add GitHub Actions workflow that runs tests on push/PR.
-
-**Files created:**
-
-- `.github/workflows/ci.yml`
+Deferred until test infrastructure (P1 #4) is in place.
 
 ---
 
