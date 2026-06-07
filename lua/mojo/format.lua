@@ -13,8 +13,12 @@ function M.formatter()
 	}
 end
 
+--- @class Mojo-lang.FormatOpts
+--- @field formatters table<string, { command: fun(): string, args: string[], stdin: boolean }>
+--- @field formatters_by_ft table<string, string[]>
+
 --- @param user_opts Mojo-lang.FormatConfig|nil
---- @return table
+--- @return Mojo-lang.FormatOpts
 function M.opts(user_opts)
 	user_opts = user_opts or {}
 	local opts = vim.tbl_deep_extend("force", {}, user_opts)

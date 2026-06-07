@@ -24,6 +24,7 @@ local function is_shell_terminal(buf)
 end
 
 --- @param opts Mojo-lang.TerminalConfig|nil
+--- @return nil
 function M.setup(opts)
 	opts = opts or {}
 	if opts.enabled == false or opts.auto_activate == false then

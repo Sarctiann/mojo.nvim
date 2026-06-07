@@ -2,6 +2,7 @@ local env = require("mojo.env")
 
 local M = {}
 
+--- @return nil
 function M.setup()
 	vim.filetype.add({
 		extension = {
