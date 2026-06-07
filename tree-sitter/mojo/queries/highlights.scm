@@ -1,3 +1,7 @@
+; Variables — catch-all placed FIRST so specific rules below override it.
+
+(identifier) @variable
+
 ; Mojo self / Self (highlighted before the general naming-convention
 ; rules below so they take precedence on the literal identifiers).
 
@@ -29,7 +33,32 @@
    @function.builtin
     "^(abort|abs|all|any|ascii|atof|atol|bin|breakpoint|chr|constrained|debug_assert|divmod|enumerate|external_call|hash|hex|input|iter|len|map|materialize|max|min|next|oct|open|ord|partition|pow|print|range|rebind|rebind_var|reflect|repr|reversed|round|slice|sort|swap|zip)$"))
 
-; Mojo built-in decorators (recognized before the generic @function below)
+; Decorators — the "@" symbol is highlighted separately from the identifier
+; so that both always receive a colour, regardless of whether the name is
+; built-in, dotted, or a call expression.
+
+((decorator
+  "@" @attribute)
+ (#set! priority 101))
+
+(decorator
+  (identifier) @attribute)
+
+(decorator
+  (attribute
+    attribute: (identifier) @attribute))
+
+(decorator
+  (call
+    (identifier) @attribute))
+
+(decorator
+  (call
+    (attribute
+      attribute: (identifier) @attribute)))
+
+; Built-in decorators (recognized after the generic @attribute rules above
+; so their more-specific capture takes precedence on match).
 
 ((decorator
   (identifier) @attribute.builtin)
@@ -41,8 +70,6 @@
 
 ; Function calls
 
-(decorator) @function
-
 (call
   function: (attribute attribute: (identifier) @function.method))
 (call
@@ -53,7 +80,6 @@
 (function_definition
   name: (identifier) @function)
 
-(identifier) @variable
 (attribute attribute: (identifier) @property)
 (type (identifier) @type)
 

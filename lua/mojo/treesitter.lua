@@ -66,14 +66,33 @@ end
 --- @return boolean
 local function stale_parser()
 	local root = plugin_root()
-	local grammar = root .. "/tree-sitter/mojo/grammar.js"
+	local grammar_dir = root .. "/tree-sitter/mojo"
 	local parser = vim.fn.expand("~/.local/share/nvim/site/parser/mojo.so")
-	local gstat = vim.uv.fs_stat(grammar)
+	local queries_dest = vim.fn.expand("~/.local/share/nvim/site/queries/mojo")
+
 	local pstat = vim.uv.fs_stat(parser)
-	if not gstat or not pstat then
+	if not pstat then
 		return true
 	end
-	return gstat.mtime.sec > pstat.mtime.sec
+
+	local grammar = grammar_dir .. "/grammar.js"
+	local gstat = vim.uv.fs_stat(grammar)
+	if gstat and gstat.mtime.sec > pstat.mtime.sec then
+		return true
+	end
+
+	local qdir = grammar_dir .. "/queries"
+	if vim.fn.isdirectory(qdir) == 1 then
+		for _, qf in ipairs(vim.fn.readdir(qdir)) do
+			local src_stat = vim.uv.fs_stat(qdir .. "/" .. qf)
+			local dst_stat = vim.uv.fs_stat(queries_dest .. "/" .. qf)
+			if not dst_stat or (src_stat and src_stat.mtime.sec > dst_stat.mtime.sec) then
+				return true
+			end
+		end
+	end
+
+	return false
 end
 
 --- @param opts Mojo-lang.TreesitterConfig|nil
