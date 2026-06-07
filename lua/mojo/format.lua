@@ -29,16 +29,4 @@ function M.opts(user_opts)
 	return opts
 end
 
---- @param user_opts Mojo-lang.FormatConfig|nil
---- @return boolean
-function M.setup(user_opts)
-	local ok, conform = pcall(require, "conform")
-	if not ok then
-		return false
-	end
-
-	conform.setup(M.opts(user_opts))
-	return true
-end
-
 return M
