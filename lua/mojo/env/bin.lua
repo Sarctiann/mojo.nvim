@@ -79,7 +79,7 @@ local function find_debug_binary(path, role)
 			local name = entry.name
 			if env and env.bin_dir then
 				local bin = vim.fs.joinpath(env.bin_dir, name)
-				if util.has_file(bin) then
+				if vim.fn.executable(bin) == 1 then
 					log.log("dbg_" .. role .. "_cmd", function()
 						return { path = path or vim.fn.getcwd(), cmd = bin, source = "bin_dir" }
 					end)
@@ -89,7 +89,7 @@ local function find_debug_binary(path, role)
 
 			if env and env.type == "pixi" then
 				local bin = util.find_pixi_binary(env.root, name)
-				if bin then
+				if bin and vim.fn.executable(bin) == 1 then
 					log.log("dbg_" .. role .. "_cmd", function()
 						return { path = path or vim.fn.getcwd(), cmd = bin, source = "pixi_envs" }
 					end)

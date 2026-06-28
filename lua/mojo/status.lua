@@ -82,7 +82,14 @@ function M.dbg_status()
 		return "unavailable"
 	end
 	local st = debug.status()
-	if st.active then
+	if st.active == "dap" then
+		local ok_dap, dap = pcall(require, "dap")
+		if ok_dap and dap.session and dap.session() then
+			return "active"
+		end
+		return "inactive"
+	end
+	if st.active == "native" then
 		return "active"
 	end
 	if st.dap or st.native then

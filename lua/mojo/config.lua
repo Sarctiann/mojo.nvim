@@ -139,9 +139,9 @@ M.defaults = {
 		auto_scroll = true,
 		auto_backend = nil,
 		search_for = {
+			{ name = "lldb-dap", role = "dap" },
 			{ name = "_mojo-lldb-dap", role = "dap" },
 			{ name = "mojo-lldb-dap", role = "dap" },
-			{ name = "lldb-dap", role = "dap" },
 			{ name = "mojo-lldb", role = "native" },
 			{ name = "lldb", role = "native" },
 		},

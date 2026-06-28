@@ -1,5 +1,14 @@
 local M = {}
 
+local WINBAR_NORMAL = "%#MojoDebugWinBar#  [r]un [n]ext [s]tep [c]ontinue [v]ars [b]ps  |  [q] [esc] close  [⏎] enter  "
+local WINBAR_TERMINAL = "%#MojoDebugWinBar#  ─── LLDB ─── [i] insert mode  |  [q] close  [esc] back to normal  "
+
+local function set_winbar_text(win, text)
+	if vim.api.nvim_win_is_valid(win) then
+		vim.wo[win].winbar = text
+	end
+end
+
 --- @param buf integer
 --- @param win integer
 --- @param job integer|nil
@@ -8,10 +17,11 @@ function M.setup(buf, win, job)
 	vim.b[buf].mojo_debug = true
 
 	vim.api.nvim_set_hl(0, "MojoDebugWinBar", { bg = "#4e8cbf", fg = "#ffffff" })
-	vim.wo[win].winbar =
-		"%#MojoDebugWinBar#  [r]un [n]ext [s]tep [c]ontinue [v]ars [b]ps  |  [q] [Esc] [Enter] close  "
+	set_winbar_text(win, WINBAR_NORMAL)
 	vim.wo[win].winhl = "Normal:NormalFloat"
 	vim.wo[win].statusline = " "
+
+	-- Keep statusline hidden when window is refocused
 	vim.api.nvim_create_autocmd("WinEnter", {
 		buffer = buf,
 		callback = function()
@@ -22,6 +32,24 @@ function M.setup(buf, win, job)
 		end,
 	})
 
+	-- Update winbar based on mode (n vs t)
+	vim.api.nvim_create_autocmd("ModeChanged", {
+		buffer = buf,
+		callback = function()
+			local cur_win = vim.api.nvim_get_current_win()
+			if not (vim.api.nvim_win_is_valid(cur_win) and vim.api.nvim_win_get_buf(cur_win) == buf) then
+				return
+			end
+			local mode = vim.api.nvim_get_mode().mode
+			if mode:sub(1, 1) == "t" then
+				set_winbar_text(cur_win, WINBAR_TERMINAL)
+			else
+				set_winbar_text(cur_win, WINBAR_NORMAL)
+			end
+		end,
+	})
+
+	-- Normal mode: q closes, <Esc> closes, <CR> enters terminal mode
 	M._map(buf, "n", "q", function()
 		require("mojo.debug.native").close()
 	end, "Close debug terminal")
@@ -29,16 +57,19 @@ function M.setup(buf, win, job)
 		require("mojo.debug.native").close()
 	end, "Close debug terminal")
 	M._map(buf, "n", "<CR>", function()
-		require("mojo.debug.native").close()
-	end, "Close debug terminal")
-	local function close_term()
+		vim.api.nvim_command("startinsert")
+	end, "Enter terminal mode (send to LLDB)")
+
+	-- Terminal mode: q closes, <Esc> back to normal mode (does NOT close)
+	M._map(buf, "t", "q", function()
 		vim.cmd("stopinsert")
 		require("mojo.debug.native").close()
-	end
-	M._map(buf, "t", "q", close_term, "Close debug terminal")
-	M._map(buf, "t", "<Esc>", close_term, "Close debug terminal")
-	M._map(buf, "t", "<CR>", close_term, "Close debug terminal")
+	end, "Close debug terminal")
+	M._map(buf, "t", "<Esc>", function()
+		vim.cmd("stopinsert")
+	end, "Back to normal mode")
 
+	-- LLDB control commands (only meaningful in normal mode)
 	local function lldb(cmd)
 		return function()
 			require("mojo.debug.native").send(cmd)

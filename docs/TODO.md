@@ -41,17 +41,18 @@
 
 ### Debugging
 
-| VS Code Feature                    | Status | Notes                                                              |
-| ---------------------------------- | ------ | ------------------------------------------------------------------ |
-| LLDB debug adapter                 | ✅     | `mojo-lldb-dap` → DAP server nativo LLDB, `_mojo-lldb-dap` (arm64) |
-| AOT compile + LLDB attach (26.6.0) | ✅     | Soportado vía `mojoFile` — DAP server compila `.mojo` internamente |
-| Debug Mojo File action             | ✅     | `:MojoDebug` / `:MojoDebugNative` / `:MojoDebugDap`                |
-| `mojoFile` (JIT compile on launch) | 🟡     | DAP via `adapters/dap.lua`; native via `mojo debug <file>`         |
-| `buildArgs` in debug config        | ❌     | Propiedad `buildArgs` soportada por el DAP server                  |
-| Attach to process                  | ✅     | Via `adapters/dap.lua` config `Attach to Process`                  |
-| `mojo debug --vscode` support      | 🟡     | No necesario; DAP server + `mojo debug` nativa cubren el caso      |
-| Mojo data formatters (visualizers) | ❌     | `lldbDataFormatters.py` + `mlirDataFormatters.py` en lib/          |
-| LLDB init/pre-run/post-run cmds    | ❌     | Comandos LLDB pre/post lanzamiento soportados                      |
+| VS Code Feature                    | Status | Notes                                                                                                                       |
+| ---------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------- |
+| LLDB debug adapter                 | ✅     | `mojo-lldb-dap` + `_mojo-lldb-dap` (arm64); also `lldb-dap` from system PATH                                                |
+| AOT compile + LLDB attach (26.6.0) | ✅     | AOT via `mojo build --debug-level=full -O0`; re-signed with `get-task-allow` on macOS                                       |
+| Debug Mojo File action             | ✅     | `:MojoDebug` (auto), `:MojoDebugNative`, `:MojoDebugDap`                                                                    |
+| `mojoFile` (JIT compile on launch) | 🟡     | DAP via `adapters/dap.lua` (compile first, pass `program`); native AOT only                                                 |
+| `buildArgs` in debug config        | ❌     | Build args not exposed in launch config                                                                                     |
+| Attach to process                  | ✅     | Via `dap.configurations.mojo` `Attach to Process` entry                                                                     |
+| `mojo debug --vscode` support      | 🟡     | DAP + native `mojo-lldb <bin>` cover the case                                                                               |
+| Mojo data formatters (visualizers) | ❌     | `lldbDataFormatters.py` + `mlirDataFormatters.py` not loaded by our adapter                                                 |
+| LLDB init/pre-run/post-run cmds    | 🟡     | Source-map set via `initCommands`; pre/post commands not exposed                                                            |
+| Editor → LLDB breakpoint sync      | 🟡     | Reads buffer signs and sends to LLDB; works with our `MojoBreakpoint`; unreliable with plugins that manage signs volatilely |
 
 ### Run
 
@@ -269,16 +270,35 @@
 
 **Sovereignty:** Rule 1 (Centralization) + Rule 6 (Environmental Autonomy)
 
-**Why:** `uv` projects only provide `mojo` CLI (via `mojo debug`). `pixi` projects provide both `mojo-lldb` + `mojo-lldb-dap` (DAP server). El plugin detecta disponibilidad y adapta la experiencia.
+**Why:** Different environments (uv vs pixi) ship different debug binaries. Plugin detects availability and adapts: prefers DAP when `mojo-lldb-dap` is available (pixi), falls back to native `mojo-lldb`/`lldb` CLI; falls back further to `mojo debug` terminal when no debug server is present (uv).
+
+**Architecture:**
+
+```
+lua/mojo/debug/
+├── init.lua       — public entry: start(backend), _pick_backend(), _start_dap(), toggle_bp(), clear_bps(), status()
+├── native.lua     — AOT build + `mojo-lldb <bin>` terminal backend; macOS re-signs with get-task-allow
+├── breakpoints.lua — generic all-signs reader, syncs source buffer BPs to LLDB
+└── window.lua     — mode-aware winbar (normal vs terminal mode), keymaps, auto-scroll
+```
 
 **Implementation:**
 
-- `debug/init.lua` — entry point unificado: `start(auto|native|dap)`, `toggle_bp()`, `clear_bps()`, `status()`
-- `debug/native.lua` — backend nativo: terminal `mojo debug <file>`, envío de comandos LLDB via chan_send
-- `debug/breakpoints.lua` — breakpoints via signs (lee grupos `mojo` y `dap`), sync a LLDB, watcher en BufWritePost
-- `debug/window.lua` — winbar con keymaps, auto-scroll configurable
-- `env/bin.lua` — `get_dbg_native_cmd()` para detectar `mojo-lldb`
-- `config.lua` — `Mojo-lang.DebugConfig` con `auto_scroll`, `auto_backend`
-- `commands.lua` — `:Mojo debug`, `:Mojo debug-native`, `:Mojo debug-dap` + spread variants
-- `status.lua` — `dbg_status()` refleja ambos backends, labels `dbg_ntv`/`dbg_dap`
-- `adapters/lualine.lua` — muestra status mojo también en terminales de debug/run
+- **Backend selection** (`debug/init.lua:_pick_backend`): respects `config.debug.auto_backend` override; otherwise tries DAP first, then native (`mojo-lldb` / `lldb`), then `mojo` (any).
+- **Shared binary discovery** (`env/bin.lua`): `find_debug_binary(path, role)` reads `config.debug.search_for` ordered list. Defaults: `_mojo-lldb-dap`, `mojo-lldb-dap`, `lldb-dap` (dap role); `mojo-lldb`, `lldb` (native role). Users can extend for custom SDK layouts.
+- **Native backend** (`debug/native.lua`): builds `.mojo` via `mojo build --debug-level=full -O0` → outputs to `_mojo-debug/<file>.bin`; on macOS re-signs with `com.apple.security.get-task-allow` (matches what Xcode does for Debug builds); launches `mojo-lldb <bin>` in a terminal split with mode-aware keymaps.
+- **DAP backend** (`debug/init.lua:_start_dap`): requires nvim-dap. Uses `adapters/dap.lua:M.build()` to compile, then `dap.run({ program = bin, ... })`.
+- **macOS quarantine detection** (`debug/native.lua`): checks if the `mojo` binary has `com.apple.quarantine` xattr and notifies the user with the `xattr -dr` fix command.
+- **Auto-add to `.gitignore`** (`adapters/dap.lua:ensure_gitignore`): on first build, appends `_mojo-debug/` to the project's `.gitignore` if not present. Notifies once per Neovim session.
+- **Commands** (`commands.lua`): `:MojoDebug` (auto), `:MojoDebugNative`, `:MojoDebugDap` (spread); master subcommands `:Mojo debug`, `:Mojo debug-native`, `:Mojo debug-dap`.
+- **Statusline** (`status.lua` + `adapters/lualine.lua`): `dbg_status()` distinguishes "active DAP session" from "backend available, no session" from "unavailable". Icons and labels (`dbg_ntv` / `dbg_dap` / `dbg`) reflect the active backend. Mojo status also rendered in debug/run terminal windows via `vim.b.mojo_debug` / `vim.b.mojo_run` markers.
+- **Config** (`config.lua`): `DebugConfig` with `enabled`, `auto_scroll`, `auto_backend`, `search_for`. Note: `debug` was renamed to `verbose` in the root config to avoid a name collision with the new `debug` config table.
+
+**Known limitations / workarounds:**
+
+- **Editor → LLDB breakpoint sync in native mode is unreliable** when breakpoints are set by a third-party plugin (e.g. LazyExtras' `<Space>db`) that uses a volatile sign management strategy. The signs may be cleared before our sync runs. Workaround: set breakpoints manually in the LLDB terminal with `breakpoint set --file <path> --line <N>`, or use DAP.
+- **uv projects on macOS**: the `mojo` binary installed via `pip install modular` lacks macOS debugger entitlements. Native debug fails with "Not allowed to attach to process" or "Library not loaded" (sandbox). Workaround: use pixi projects for full debug, or use `mojo run` for execution-only.
+- **macOS first-run prompts**: Gatekeeper / TCC prompts for folder access when the re-signed binary first runs. Expected, not a bug.
+- **Step into stdlib**: stepping into functions like `range()` opens Mojo's standard library files (`std/range.mojo`, etc.). Use step over to stay in user code.
+
+**Status:** Implementation complete. Native debug and DAP debug both work end-to-end on pixi projects. uv projects can run `mojo` but full debug requires pixi. The breakpoint sync from editor signs to native LLDB remains unreliable — see "Known limitations".

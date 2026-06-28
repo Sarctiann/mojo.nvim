@@ -285,6 +285,7 @@ All features are enabled by default. Pass `enabled = false` to disable any featu
     auto_scroll = true,
     auto_backend = nil, -- nil = auto, "native", "dap"
     search_for = { -- searched in order; user can extend for custom envs
+      { name = "lldb-dap",       role = "dap" },
       { name = "_mojo-lldb-dap", role = "dap" },
       { name = "mojo-lldb-dap",  role = "dap" },
       { name = "lldb-dap",       role = "dap" },

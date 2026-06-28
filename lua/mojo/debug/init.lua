@@ -41,14 +41,13 @@ function M._pick_backend()
 	if config.options.debug and config.options.debug.auto_backend then
 		return config.options.debug.auto_backend
 	end
-	local dap_cmd = env.get_dap_cmd()
-	if dap_cmd then
-		local name = vim.fn.fnamemodify(dap_cmd[1], ":t")
-		if name:match("^_?mojo%-lldb%-dap") then
-			return "dap"
-		end
+	if env.get_dap_cmd() then
+		return "dap"
 	end
-	if env.get_dbg_native_cmd() or env.get_mojo_cmd() then
+	if env.get_dbg_native_cmd() then
+		return "native"
+	end
+	if env.get_mojo_cmd() then
 		return "native"
 	end
 	return nil
@@ -66,14 +65,37 @@ function M._start_dap()
 		active_backend = nil
 		return
 	end
-	local file = vim.fn.expand("%:p")
+
+	local cwd = vim.fn.getcwd()
+	local env_vars = {}
+	local detected = require("mojo.env.detect").detect()
+	if detected and detected.env_dir then
+		env_vars.CONDA_PREFIX = detected.env_dir
+		local lib = vim.fs.joinpath(detected.env_dir, "lib")
+		local swift = vim.fs.joinpath(lib, "swift")
+		if vim.fn.has("mac") == 1 then
+			env_vars.DYLD_FALLBACK_LIBRARY_PATH = lib .. ":" .. swift
+		else
+			env_vars.LD_LIBRARY_PATH = lib .. ":" .. swift
+		end
+	end
+
+	local env_parts = {}
+	for k, v in pairs(env_vars) do
+		table.insert(env_parts, k .. "=" .. v)
+	end
+	local init = {}
+	if #env_parts > 0 then
+		table.insert(init, "settings set target.env-vars " .. table.concat(env_parts, " "))
+	end
+
 	dap.run({
 		type = "mojo-lldb",
 		request = "launch",
 		name = "Debug Mojo File",
 		program = bin,
-		cwd = vim.fn.getcwd(),
-		runInTerminal = true,
+		cwd = cwd,
+		stopOnEntry = true,
 	})
 end
 
