@@ -57,10 +57,10 @@ function M.check()
 		vim.health.warn("mojo.treesitter module not available")
 	end
 
-	if pcall(require, "lspconfig") then
-		vim.health.ok("nvim-lspconfig available")
+	if vim.lsp.config and vim.lsp.enable then
+		vim.health.ok("native LSP config API available (vim.lsp.config)")
 	else
-		vim.health.info("nvim-lspconfig not installed (LSP integration disabled)")
+		vim.health.warn("Neovim 0.11+ required for LSP integration (vim.lsp.config missing)")
 	end
 
 	if pcall(require, "conform") then
