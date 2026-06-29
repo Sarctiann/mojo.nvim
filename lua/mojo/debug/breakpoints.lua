@@ -39,10 +39,12 @@ function M.get_lines(buf)
 			end
 		end
 	else
-		local placed = vim.fn.sign_getplaced(buf, { group = "*", name = SIGN_NAME })
+		local placed = vim.fn.sign_getplaced(buf, { group = "*" })
 		for _, entry in ipairs(placed) do
 			for _, sign in ipairs(entry.signs or {}) do
-				lines[#lines + 1] = sign.lnum
+				if sign.name == SIGN_NAME then
+					lines[#lines + 1] = sign.lnum
+				end
 			end
 		end
 	end
@@ -59,12 +61,17 @@ function M.toggle()
 		ensure_sign()
 		local buf = vim.fn.bufnr()
 		local line = vim.fn.line(".")
-		local placed = vim.fn.sign_getplaced(buf, { group = "*", lnum = line, name = SIGN_NAME })[1]
+		local placed = vim.fn.sign_getplaced(buf, { group = "*", lnum = line })[1]
+		local exists = false
 		if placed and placed.signs and #placed.signs > 0 then
 			for _, s in ipairs(placed.signs) do
-				vim.fn.sign_unplace("MojoDebugBPs", { buffer = buf, id = s.id })
+				if s.name == SIGN_NAME then
+					vim.fn.sign_unplace("MojoDebugBPs", { buffer = buf, id = s.id })
+					exists = true
+				end
 			end
-		else
+		end
+		if not exists then
 			vim.fn.sign_place(0, "MojoDebugBPs", SIGN_NAME, buf, { lnum = line })
 		end
 	end
@@ -84,7 +91,7 @@ function M.clear()
 		end
 	else
 		local buf = vim.fn.bufnr()
-		vim.fn.sign_unplace("MojoDebugBPs", { buffer = buf, name = SIGN_NAME })
+		vim.fn.sign_unplace("MojoDebugBPs", { buffer = buf })
 	end
 end
 
