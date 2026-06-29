@@ -1,66 +1,79 @@
 # test-mojo-uv
 
-uv-based Mojo project for debugger testing.
+Sample Mojo project managed with [uv](https://docs.astral.sh/uv). Used for manual
+debugger testing of [mojo.nvim](https://github.com/Sarctiann/mojo.nvim).
 
-> **macOS caveat:** uv-installed mojo lacks debugger entitlements.
-> Native and DAP debug will fail with `Not allowed to attach to process`.
-> To fix, re-sign the binary (see below) or use pixi.
+## Setup (from scratch)
 
-## Setup
+Follows the official [Mojo quickstart for uv](https://mojolang.org/install/):
 
 ```bash
-cd tests/mojo_samples/test-mojo-uv
-uv sync
+# 1. Install uv (if needed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# 2. Create the project
+uv init test-mojo-uv && cd test-mojo-uv
+
+# 3. Create virtual environment
+uv venv && source .venv/bin/activate
+
+# 4. Add the mojo package (--prerelease allow required for beta builds)
+uv add mojo --prerelease allow
+```
+
+> The `--prerelease allow` flag is required only when installing beta (or dev) builds.
+
+This project is already initialized - just run `uv sync` and `source .venv/bin/activate`.
+
+## Run
+
+```bash
+source .venv/bin/activate
+mojo run main.mojo
+```
+
+Expected output:
+
+```
+Hello, debug!
+Step 0 counter = 1
+Step 1 counter = 3
+Step 2 counter = 6
+Step 3 counter = 10
+Step 4 counter = 15
+
+Final counter: 15
+```
+
+## Debug
+
+See the [debugger testing guide](../../../docs/testing-debugger.md) for the full
+step-by-step manual test procedure covering both native (`dbg_ntv`) and DAP
+(`dbg_dap`) backends.
+
+> **macOS**: The mojo binary installed via uv/PyPI lacks debugger entitlements.
+> If you see `Not allowed to attach to process`, re-sign the binary:
+>
+> ```bash
+> # Create entitlements plist
+> cat > /tmp/debug.plist << 'EOF'
+> <?xml version="1.0" encoding="UTF-8"?>
+> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+> <plist version="1.0"><dict><key>com.apple.security.get-task-allow</key><true/></dict></plist>
+> EOF
+>
+> # Re-sign the mojo binary
+> codesign --force --sign - --entitlements /tmp/debug.plist $(which mojo)
+> ```
+>
+> Pixi-installed mojo does not have this issue. Consider using the pixi project
+> (`tests/mojo_samples/test-mojo-pixi/`) for the full debugger experience.
+
+Quick start:
+
+```bash
 source .venv/bin/activate
 nvim main.mojo
+:Mojo debug-native   " native LLDB terminal (may need re-sign on macOS)
+:Mojo debug-dap      " nvim-dap + lldb-dap (may need re-sign on macOS)
 ```
-
-## macOS Re-sign Workaround
-
-```bash
-cat > debug.plist << 'EOF'
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict><key>com.apple.security.get-task-allow</key><true/></dict></plist>
-EOF
-codesign --force --sign - --entitlements debug.plist $(which mojo)
-```
-
-## Workflow 1 — Native Debugger (`dbg_ntv`)
-
-Uses `mojo-lldb` in a terminal split. Keybindings (normal mode): `r` run,
-`n` next, `s` step, `c` continue, `v` variables, `b` sync breakpoints, `q` close.
-
-| Step | Action                 | Expected                                                                     |
-| ---- | ---------------------- | ---------------------------------------------------------------------------- |
-| 1    | `:Mojo debug-native`   | Terminal split opens with `(lldb)` prompt. Build completes.                  |
-| 2    | Press `r`              | Runs, stops at breakpoint (if set). Shows `Hello, debug!`.                   |
-| 3    | Press `c`              | Continues to next breakpoint or exit.                                        |
-| 4    | Press `v`              | Shows frame variables (`counter`, `i`).                                      |
-| 5    | Press `q`              | Terminal closes.                                                             |
-
-If `mojo-lldb` is not available in the uv venv, native debug falls back to
-`:MojoDebug` (terminal `mojo debug`).
-
-## Workflow 2 — DAP Debugger (`dbg_dap`)
-
-Requires [nvim-dap]. Uses `lldb-dap` (uv venv) with nvim-dap UI.
-Binary discovery is configurable via `debug.search_for` in the plugin config.
-
-| Step | Action                 | Expected                                                          |
-| ---- | ---------------------- | ----------------------------------------------------------------- |
-| 1    | Toggle breakpoint at line 6 | `<leader>db` — breakpoint sign appears in gutter.           |
-| 2    | `:Mojo debug-dap`      | nvim-dap session starts, pauses at entry.                          |
-| 3    | `<F5>` (continue)      | Runs to breakpoint at line 6.                                      |
-| 4    | `<F10>` (step over)    | Steps to next line.                                                |
-| 5    | `<F5>` until exit      | Program completes.                                                 |
-
-## Statusline
-
-| State               | Indicator               |
-| ------------------- | ----------------------- |
-| No session          | `dbg_ntv` / `dbg_dap` (dimmed) |
-| Native debug active | `dbg_ntv` (highlighted) |
-| DAP debug active    | `dbg_dap` (highlighted) |
-
-[nvim-dap]: https://github.com/mfussenegger/nvim-dap
