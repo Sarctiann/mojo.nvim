@@ -53,7 +53,7 @@
 | `mojo debug --vscode` support      | 🟡     | DAP + native `mojo-lldb <bin>` cover the case                                                                               |
 | Mojo data formatters (visualizers) | ❌     | `lldbDataFormatters.py` + `mlirDataFormatters.py` not loaded by our adapter                                                 |
 | LLDB init/pre-run/post-run cmds    | 🟡     | Source-map set via `initCommands`; pre/post commands not exposed                                                            |
-| Editor → LLDB breakpoint sync      | 🟡     | Reads buffer signs and sends to LLDB; works with our `MojoBreakpoint`; unreliable with plugins that manage signs volatilely |
+| Editor → LLDB breakpoint sync      | 🟡     | Reads from nvim-dap breakpoint API (or `MojoBreakpoint` fallback); incremental sync + LLDB ID tracking pending   |
 
 ### Run
 

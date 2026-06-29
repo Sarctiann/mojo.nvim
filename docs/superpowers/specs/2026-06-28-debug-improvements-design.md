@@ -1,7 +1,19 @@
 # Debug Improvements — Unified Debug Experience
 
-**Status:** Draft
+**Status:** Partially Implemented
 **Date:** 2026-06-28
+**Updated:** 2026-06-29 (post debugger bugfix session)
+
+## Implementation Divergences
+
+| Spec | Implementation | Reason |
+|------|---------------|--------|
+| `breakpoints.lua` toggle/clear use only signs | Uses nvim-dap `dap.breakpoints` API when available, `MojoBreakpoint` signs as fallback | Integrates with `<leader>db` keymap; breakpoints shared across backends |
+| `sync()` does incremental diff with LLDB ID tracking | `sync_all()` re-sends all breakpoints (no ID tracking) | Simpler, no parsing needed; duplicate `breakpoint set` is idempotent in LLDB |
+| `M.status()` returns `{ backends: string[] }` | Returns `{ native: boolean, dap: boolean, active: string\|nil }` | Simpler for statusline rendering |
+| `get_buffer_bps()` returns `{ [line] = true }` | `get_lines()` returns sorted `integer[]` | More ergonomic for iteration |
+| `debug.start()` uses `active_backend` optimistic set | `_start_dap()` sets `active_backend` inside, with `pcall` wrapper on `dap.run()` | Prevents false "active" status on DAP launch failure |
+| Double build on DAP launch | `mojoFile` returns source path directly; `program` calls `M.build()` once | Eliminates redundant compilation |
 
 ## Goal
 
