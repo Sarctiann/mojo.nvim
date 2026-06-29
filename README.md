@@ -43,7 +43,7 @@ Centralizes filetype detection, Treesitter, LSP, formatting, and environment act
 - Completion support (nvim-cmp / blink.cmp) with keywords, builtins, types, and snippets
 - lualine.nvim statusline integration with SDK version display
 - `MojoVersion` component for non-lualine statuslines
-- 🚧 Debugging support — nvim-dap (mojo-lldb-dap) + native terminal (mojo debug)
+- Debugging support — nvim-dap (mojo-lldb-dap) + native terminal (mojo-lldb)
 - Run current Mojo file with `:Mojo run` / `:Mojo dedicated`
 - LSP lifecycle management (`:Mojo menu`, `:Mojo restart`, `:Mojo stop`, `:Mojo refresh`)
 - 4-space indentation for Mojo files
@@ -85,13 +85,15 @@ Provides keyword autocompletion for Mojo-specific keywords (54), builtin functio
 
 Execute the current Mojo file with `:Mojo run` (opens a terminal split) or `:Mojo dedicated` (opens or reuses a dedicated terminal buffer). Both commands resolve the `mojo` binary through the active environment and display a winbar with close instructions. If `commands.spread = true`, the individual `:MojoRun` and `:MojoRunDedicated` commands are also available.
 
-### Debug 🚧
+### Debug
 
-Debug the current Mojo file with `:Mojo debug` (auto-selects backend), `:Mojo debug-native` (terminal via `mojo debug`), or `:Mojo debug-dap` (nvim-dap). The auto backend prefers DAP when `mojo-lldb-dap` is available (pixi), falling back to native `mojo debug` (uv). If `commands.spread = true`, individual `:MojoDebug`, `:MojoDebugNative`, and `:MojoDebugDap` commands are also available.
+Debug the current Mojo file with `:Mojo debug` (auto-selects backend), `:Mojo debug-native` (terminal via `mojo-lldb`), or `:Mojo debug-dap` (nvim-dap). The auto backend prefers DAP when `mojo-lldb-dap` is available (pixi), falling back to native `mojo-lldb` (uv, pixi).
 
-Native debug (`:MojoDebugNative`) opens a terminal with LLDB keymaps: `r` (run), `n` (next), `s` (step), `c` (continue), `v` (frame variable), `b` (sync breakpoints), `q`/`<Esc>`/`<CR>` (close). Editor breakpoints (set via `<leader>db` or nvim-dap) are synced to LLDB on open and on save.
+Native debug (`:MojoDebugNative`) opens a terminal with LLDB keymaps: `r` (run), `n` (next), `s` (step), `c` (continue), `v` (frame variable), `b` (sync breakpoints), `q`/`<Esc>`/`<CR>` (close). Editor breakpoints placed via nvim-dap (`<leader>db`) or the `:Mojo debug toggle_bp` command are synced to LLDB on launch, save, and manual sync.
 
 DAP debug (`:MojoDebugDap`) requires [nvim-dap](https://github.com/mfussenegger/nvim-dap) and provides four launch configurations: Debug Mojo File, Debug Mojo File (with args), Debug Binary, and Attach to Process.
+
+**macOS note:** UV-installed Mojo binaries lack debugger entitlements. Use pixi projects for full debugging, or re-sign the binary (see `docs/testing-debugger.md`).
 
 ### Indentation
 
@@ -110,9 +112,9 @@ Commands are configured via the `commands` option. By default only the master `:
 | `:MojoStopLSP`       | Stop Mojo LSP server                                       |
 | `:MojoRun`           | Run current `.mojo` file in a terminal split               |
 | `:MojoRunDedicated`  | Run current `.mojo` file in a dedicated terminal buffer    |
-| `:MojoDebug`         | 🚧 Debug current `.mojo` file (auto-selects best backend)  |
-| `:MojoDebugNative`   | 🚧 Debug via `mojo debug` in terminal (dbg_native)        |
-| `:MojoDebugDap`      | 🚧 Debug via nvim-dap + mojo-lldb-dap (dbg_dap)           |
+| `:MojoDebug`         | Debug current `.mojo` file (auto-selects best backend)  |
+| `:MojoDebugNative`   | Debug via `mojo-lldb` in terminal (dbg_native)          |
+| `:MojoDebugDap`      | Debug via nvim-dap + mojo-lldb-dap (dbg_dap)             |
 | `:MojoRebuildParser` | Manually rebuild the self-hosted tree-sitter Mojo parser   |
 
 `:Mojo` subcommands: `menu`, `run`, `dedicated`, `debug`, `debug-native`, `debug-dap`, `restart`, `stop`, `refresh`, `rebuild`, `keymaps`, `help`. Press `<Tab>` after `:Mojo ` to cycle through them.
@@ -126,8 +128,8 @@ Default keymaps for Mojo buffers. These can be overridden or disabled per-keymap
 | `K`                  | Normal           | `FileType mojo`   | Signature help inside parens, hover otherwise |
 | `<leader>ca`         | Normal, Visual   | `FileType mojo`   | Code action (`vim.lsp.buf.code_action`)       |
 | `q`, `<Esc>`, `<CR>` | Normal, Terminal | `:MojoRun` buffer | Close run terminal                            |
-| `r` `n` `s` `c` `v`  | Normal           | 🚧 Debug terminal | LLDB: run, next, step, continue, frame var    |
-| `b`                  | Normal           | 🚧 Debug terminal | Re-sync breakpoints from editor signs         |
+| `r` `n` `s` `c` `v`  | Normal           | Debug terminal    | LLDB: run, next, step, continue, frame var    |
+| `b`                  | Normal           | Debug terminal    | Re-sync breakpoints from editor signs         |
 
 The `:MojoMenu` floating window also has numbered keymaps `1`, `2`, `3` mapped to each action, and `q` / `<Esc>` to close.
 
@@ -348,7 +350,7 @@ All integrations are optional — the plugin degrades gracefully if the backend 
 | Formatting   | `conform.nvim`           | `lua/mojo/adapters/conform.lua`                                  |
 | Treesitter   | `nvim-treesitter`        | `lua/mojo/adapters/treesitter.lua`                               |
 | Completion   | `nvim-cmp` / `blink.cmp` | `lua/mojo/adapters/nvim-cmp.lua` / `lua/mojo/adapters/blink.lua` |
-| 🚧 Debugging | `nvim-dap`               | `lua/mojo/adapters/dap.lua`                                      |
+| Debugging    | `nvim-dap`               | `lua/mojo/adapters/dap.lua`                                      |
 | Statusline   | `lualine.nvim`           | `lua/mojo/adapters/lualine.lua`                                  |
 | Distribution | LazyVim                  | `lua/mojo/adapters/lazyvim.lua`                                  |
 
@@ -359,7 +361,7 @@ Each adapter can be replaced via its feature's `adapter` config field for custom
 ## Notes
 
 - The plugin does not ship the Mojo LSP binary or official toolchain
-- 🚧 Debugging is enabled by default; native terminal backend degrades gracefully when `mojo` not found
+- Debugging is enabled by default; both native and DAP backends degrade gracefully when binaries not found. On macOS with uv-installed Mojo, native debugging may require re-signing the binary (see `docs/testing-debugger.md`)
 - When `verbose = true`, logs are written to `mojo-debug.log` in the current working directory
 - The plugin auto-activates Pixi or venv project environments before Mojo LSP startup and in terminal buffers
 - Treesitter is isolated behind `lua/mojo/treesitter.lua`. The parser grammar is self-hosted in `tree-sitter/mojo/`. The plugin auto-rebuilds the parser when the grammar source changes; `:MojoRebuildParser` is available for manual rebuilds
