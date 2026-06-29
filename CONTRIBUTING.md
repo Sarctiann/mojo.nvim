@@ -69,7 +69,7 @@ mojo.nvim/
 │   │   └── util.lua         # Shared utilities
 │   └── adapters/            # Optional, stateless generic-plugin integrations
 │       ├── lualine.lua      # lualine.nvim adapter
-│       ├── lspconfig.lua    # nvim-lspconfig adapter
+│       ├── lspconfig.lua    # native vim.lsp.config adapter
 │       ├── conform.lua      # conform.nvim adapter
 │       ├── dap.lua          # nvim-dap adapter
 │       ├── blink.lua        # blink.cmp adapter
@@ -127,8 +127,9 @@ redefining.
 ## Dependencies
 
 - No `require()` of a third-party Mojo-specific plugin.
-- Generic plugins (`nvim-lspconfig`, `nvim-treesitter`, `conform.nvim`,
-  `nvim-dap`, etc.) use `pcall` — optional.
+- Generic plugins (`nvim-treesitter`, `conform.nvim`, `nvim-dap`, etc.) use
+  `pcall` — optional. (LSP uses the native `vim.lsp.config` API, no
+  `nvim-lspconfig` dependency.)
 - If a generic plugin is missing, the feature degrades gracefully (returns
   `false`).
 

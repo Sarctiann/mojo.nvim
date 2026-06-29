@@ -18,9 +18,9 @@ needs to be rewritten — the rest of the plugin and user configuration stays un
 ### 3. No Third-Party Mojo Plugin Dependencies
 Any Mojo-specific Neovim tool created by a third party must be re-implemented in this
 repository rather than added as a dependency. The plugin must be self-sufficient for
-Mojo work. Generic tools (`nvim-lspconfig`, `nvim-treesitter`, `conform.nvim`,
-`nvim-dap`) remain optional backends — the plugin adapts to them, not the other way
-around.
+Mojo work. Generic tools (`nvim-treesitter`, `conform.nvim`, `nvim-dap`) remain
+optional backends — the plugin adapts to them, not the other way around. LSP uses
+Neovim's native `vim.lsp.config` API directly (no `nvim-lspconfig` dependency).
 
 ### 4. Adapter Pattern for Generic Extensions
 Integration with generic Neovim plugin ecosystems (LazyVim, lazy.nvim, etc.) must be
@@ -62,8 +62,8 @@ to reflect the new recommended path (load `update-docs` to audit).
 
 ### Dependencies
 - No `require()` of a third-party Mojo-specific plugin.
-- Generic plugins (`lspconfig`, `nvim-treesitter`, `conform`, `nvim-dap`) use
-  `pcall` — optional.
+- Generic plugins (`nvim-treesitter`, `conform`, `nvim-dap`) use `pcall` —
+  optional. LSP uses the native `vim.lsp.config` API (no `nvim-lspconfig`).
 - If a generic plugin is missing, the feature degrades gracefully (returns `false`).
 - DAP adapter (`mojo-lldb-dap`) discovery follows same pattern as LSP server:
   env-resolution first, PATH fallback.

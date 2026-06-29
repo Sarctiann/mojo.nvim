@@ -38,7 +38,7 @@ Centralizes filetype detection, Treesitter, LSP, formatting, and environment act
 - `.mojo` and `🔥` filetype detection
 - Treesitter parser registration for Mojo
 - Environment helpers for Pixi, virtualenv, and manual SDK paths
-- LSP and formatter integration (via `nvim-lspconfig` / `conform.nvim`)
+- LSP and formatter integration (native `vim.lsp.config` / `conform.nvim`)
 - Terminal environment auto-activation
 - Completion support (nvim-cmp / blink.cmp) with keywords, builtins, types, and snippets
 - lualine.nvim statusline integration with SDK version display
@@ -67,7 +67,7 @@ Registers the self-hosted Mojo parser grammar with `nvim-treesitter`. The gramma
 
 ### LSP
 
-Configures `mojo-lsp-server` via `nvim-lspconfig` with environment-aware binary resolution (finds the binary in the active Pixi/venv environment). Supports custom root markers for project detection.
+Configures `mojo-lsp-server` via Neovim's native `vim.lsp.config` / `vim.lsp.enable` (0.11+) with environment-aware binary resolution (finds the binary in the active Pixi/venv environment). Supports custom root markers for project detection. No `nvim-lspconfig` dependency.
 
 ### Format
 
@@ -306,7 +306,7 @@ All integrations are optional — the plugin degrades gracefully if the backend 
 
 | Integration  | Backend                  | Adapter                                                          |
 | ------------ | ------------------------ | ---------------------------------------------------------------- |
-| LSP          | `nvim-lspconfig`         | `lua/mojo/adapters/lspconfig.lua`                                |
+| LSP          | native `vim.lsp.config`  | `lua/mojo/adapters/lspconfig.lua`                                |
 | Formatting   | `conform.nvim`           | `lua/mojo/adapters/conform.lua`                                  |
 | Treesitter   | `nvim-treesitter`        | `lua/mojo/adapters/treesitter.lua`                               |
 | Completion   | `nvim-cmp` / `blink.cmp` | `lua/mojo/adapters/nvim-cmp.lua` / `lua/mojo/adapters/blink.lua` |
