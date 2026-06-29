@@ -163,12 +163,10 @@ function M.setup(opts)
 		end
 		if build_opts.mojo_file then
 			config.mojoFile = function()
-				local _, src = build_mojo_file()
-				return src
+				return vim.fn.expand("%:p")
 			end
 			config.program = function()
-				local bin, _ = build_mojo_file()
-				return bin
+				return M.build()
 			end
 		end
 		return config

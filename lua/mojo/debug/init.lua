@@ -17,15 +17,11 @@ function M.start(backend)
 		backend = M._pick_backend()
 	end
 	if not backend then
-		vim.notify(
-			"mojo.nvim: no debugger available (mojo not found in PATH)",
-			vim.log.levels.ERROR
-		)
+		vim.notify("mojo.nvim: no debugger available (mojo not found in PATH)", vim.log.levels.ERROR)
 		return
 	end
 
 	if backend == "dap" then
-		active_backend = "dap"
 		M._start_dap()
 	elseif backend == "native" then
 		active_backend = "native"
@@ -89,7 +85,8 @@ function M._start_dap()
 		table.insert(init, "settings set target.env-vars " .. table.concat(env_parts, " "))
 	end
 
-	dap.run({
+	active_backend = "dap"
+	local ok_run, err = pcall(dap.run, {
 		type = "mojo-lldb",
 		request = "launch",
 		name = "Debug Mojo File",
@@ -97,6 +94,10 @@ function M._start_dap()
 		cwd = cwd,
 		stopOnEntry = true,
 	})
+	if not ok_run then
+		active_backend = nil
+		vim.notify("mojo.nvim: DAP launch failed: " .. tostring(err), vim.log.levels.ERROR)
+	end
 end
 
 function M.toggle_bp()
