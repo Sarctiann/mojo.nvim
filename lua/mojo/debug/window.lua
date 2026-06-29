@@ -11,8 +11,7 @@ end
 
 --- @param buf integer
 --- @param win integer
---- @param job integer|nil
-function M.setup(buf, win, job)
+function M.setup(buf, win)
 	vim.bo[buf].buflisted = false
 	vim.b[buf].mojo_debug = true
 

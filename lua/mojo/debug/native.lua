@@ -67,7 +67,7 @@ function M.start()
 	term_win = vim.api.nvim_get_current_win()
 	term_job = vim.bo[term_buf].channel
 
-	window.setup(term_buf, term_win, term_job)
+	window.setup(term_buf, term_win)
 
 	-- Wait for the (lldb) prompt before sending breakpoints
 	M._wait_for_prompt()
@@ -77,6 +77,9 @@ end
 function M._wait_for_prompt()
 	local lib = vim.uv or vim.loop
 	local timer = lib.new_timer()
+	if not timer then
+		return
+	end
 	local elapsed = 0
 	timer:start(100, 200, vim.schedule_wrap(function()
 		elapsed = elapsed + 1
@@ -85,7 +88,13 @@ function M._wait_for_prompt()
 			timer:close()
 			return
 		end
-		local lines = vim.api.nvim_buf_get_lines(term_buf, 0, -1, false)
+		local buf = term_buf
+		if not buf then
+			timer:stop()
+			timer:close()
+			return
+		end
+		local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 		for _, line in ipairs(lines) do
 			if line:match("%(lldb%)") then
 				timer:stop()
@@ -103,6 +112,9 @@ function M.run()
 	M.send("run")
 	local lib = vim.uv or vim.loop
 	local timer = lib.new_timer()
+	if not timer then
+		return
+	end
 	local elapsed = 0
 	timer:start(300, 300, vim.schedule_wrap(function()
 		elapsed = elapsed + 1
@@ -111,7 +123,13 @@ function M.run()
 			timer:close()
 			return
 		end
-		local lines = vim.api.nvim_buf_get_lines(term_buf, 0, -1, false)
+		local buf = term_buf
+		if not buf then
+			timer:stop()
+			timer:close()
+			return
+		end
+		local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 		for _, line in ipairs(lines) do
 			if line:find(ATTACH_ERROR_MSG, 1, true) then
 				timer:stop()
@@ -142,7 +160,11 @@ function M.send(cmd)
 	vim.api.nvim_chan_send(term_job, cmd .. "\n")
 	local opts = config.options.debug or {}
 	if opts.auto_scroll ~= false then
-		window.auto_scroll(term_buf, term_win)
+		local buf = term_buf
+		local win = term_win
+		if buf and win then
+			window.auto_scroll(buf, win)
+		end
 	end
 end
 
