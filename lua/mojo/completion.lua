@@ -66,7 +66,7 @@ M.keywords = {
 	"None",
 }
 
---- Audited against Mojo stdlib tag mojo/v1.0.0b1 (std/prelude/__init__.mojo).
+--- Audited against Mojo stdlib tag mojo/v1.0.0b2 (std/prelude/__init__.mojo).
 --- Python-only names dropped; capitalized types go in M.types.
 --- @type string[]
 M.builtins = {
@@ -151,6 +151,17 @@ M.types = {
 	"DynamicVector",
 	"StringSlice",
 	"StringRef",
+	"BinaryHeap",
+	"WeakPointer",
+	"Allocation",
+	"ThinAllocation",
+	"Layout",
+	"UntrackedOrigin",
+	"UnsafeAnyOrigin",
+	"CompletionFlag",
+	"DevicePointer",
+	"DeviceContextList",
+	"ReflectedFn",
 }
 
 --- @class Mojo-lang.Snippet

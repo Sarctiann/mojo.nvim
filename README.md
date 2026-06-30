@@ -141,6 +141,43 @@ Highlight groups: `MojoIcon`, `MojoText`, `MojoSep`, `MojoGood`, `MojoNeutral`, 
 
 Configure per-indicator with `statusline` options or use `require("mojo.status").display()` for non-lualine statuslines.
 
+### Lualine integration
+
+The lualine adapter auto-injects the Mojo component into `lualine_x`. If lualine loads after mojo.nvim, the adapter wraps `lualine.setup` to inject on first call.
+
+```lua
+require("lualine").setup({
+  sections = {
+    lualine_x = {
+      -- The Mojo component is injected here automatically.
+      -- Add your own sections around it.
+    },
+  },
+})
+```
+
+**Icon and color options:**
+
+```lua
+require("mojo").setup({
+  statusline = {
+    enabled = true,
+    icon = "🔥",              -- change the icon shown in the statusline
+    color = "#ff9e64",        -- MojoText / MojoSep color
+    icon_color = "#ff6f00",   -- MojoIcon color
+    show_env_name = true,     -- show pixi/venv environment name
+    show_sdk_version = true,  -- show SDK version (e.g. "1.0.0b2")
+    show_lsp = true,          -- show LSP status indicator
+    show_fmt = true,          -- show formatter status indicator
+    show_dbg = true,          -- show debugger status indicator
+    show_diag = true,         -- show diagnostic count
+    clickable = true,         -- click to open :MojoMenu
+  },
+})
+```
+
+If you want to use a Nerd Font icon instead of the fire emoji, set `icon = "󱵮"`. You can also provide any arbitrary string as the icon.
+
 ## Installation
 
 <details open>

@@ -116,10 +116,10 @@
 
 | Mojo Change                                    | Status | Notes                                            |
 | ---------------------------------------------- | ------ | ------------------------------------------------ |
-| Movable `__init__` arg: `take` → `move`        | 🟡     | Keyword completion may need updating → Task #4   |
-| New: `BinaryHeap`, `WeakPointer`, `Allocation` | 🟡     | Not in completion builtins → Task #4             |
-| `ExternalOrigin` → `UntrackedOrigin`           | 🟡     | Completion update needed → Task #4               |
-| Reflection API: `reflect[T]` (no parens)       | 🟡     | Completion snippets may need updating            |
+| Movable `__init__` arg: `take` → `move`        | 🟡     | Types updated; completion builtins may need update → Task #4   |
+| New: `BinaryHeap`, `WeakPointer`, `Allocation` | ✅     | Added to completion types → Task #4                        |
+| `ExternalOrigin` → `UntrackedOrigin`           | ✅     | Renamed in completion types → Task #4                      |
+| Reflection API: `reflect[T]` (no parens)       | 🟡     | Completion snippets may need updating                       |
 | Deprecated free-func reflection removed        | 🟡     | No user-facing impact                            |
 | `UnsafePointer` default null ctor removed      | 🟡     | No user-facing impact                            |
 
@@ -166,16 +166,16 @@
 
 ### 4. Re-audit completion builtins for Mojo v1.0.0b2 stdlib
 
-**Created:** 2026-06-29 | **Updated:** 2026-06-29
+**Created:** 2026-06-29 | **Updated:** 2026-06-30
 **Sovereignty:** Rule 1 (Centralization) — completion builtins must match the current stdlib.
 **Why:** The completion builtins were last audited against v1.0.0b1. v1.0.0b2 added new stdlib APIs (`BinaryHeap`, `WeakPointer`, `Allocation`), renamed others (`Movable.__init__` `take` → `move`), and removed deprecated APIs (`ExternalOrigin` → `UntrackedOrigin`).
 
 **Scope:**
 
-- Compare current `completion.lua` builtins/attrs/types lists against v1.0.0b2 stdlib
-- Add new types: `BinaryHeap`, `WeakPointer`, `Allocation`, `ThinAllocation`, `Layout`, `UntrackedOrigin`, `UnsafeAnyOrigin`, `CompletionFlag`, `DevicePointer`, `DeviceContextList`, `ReflectedFn`
-- Remove/deprecate: `ExternalOrigin` → `UntrackedOrigin`, `AnyOrigin` → `UnsafeAnyOrigin`
-- Update audit comment in `completion.lua` to reference v1.0.0b2
+- Compare current `completion.lua` builtins/attrs/types lists against v1.0.0b2 stdlib 🟡 partial
+- Add new types: `BinaryHeap`, `WeakPointer`, `Allocation`, `ThinAllocation`, `Layout`, `UntrackedOrigin`, `UnsafeAnyOrigin`, `CompletionFlag`, `DevicePointer`, `DeviceContextList`, `ReflectedFn` ✅
+- Remove/deprecate: `ExternalOrigin` → `UntrackedOrigin`, `AnyOrigin` → `UnsafeAnyOrigin` ✅
+- Update audit comment in `completion.lua` to reference v1.0.0b2 ✅
 
 ### 5. Update treesitter grammar for Mojo v1.0.0b2 syntax changes
 
@@ -190,15 +190,15 @@
 - Add trailing `where` clause support to struct and comptime alias declarations
 - Add `@unavailable` decorator parsing
 - Mark param-list `where` as `@keyword.deprecated` in highlights
-- ⏳ Blocked if upstream `tree-sitter-mojo` hasn't released these updates
+- ⏳ Not blocked — grammar is self-hosted in `tree-sitter/mojo/grammar.js`, can be updated directly
 
-### 6. Lualine icon documentation
+### 6. Lualine icon documentation [done]
 
-**Created:** 2026-06-29 | **Updated:** 2026-06-29
+**Created:** 2026-06-29 | **Updated:** 2026-06-30
 **Sovereignty:** Rule 7 (One Breaking-Change Point) — docs must reflect current state.
 **Why:** lualine adapter shows SDK version + env name in statusline; icon and config options need README documentation.
 
 **Scope:**
 
-- Document lualine icon configuration options in README
-- Add example lualine config snippet showing SDK version + env name display
+- Document lualine icon configuration options in README ✅
+- Add example lualine config snippet showing SDK version + env name display ✅
