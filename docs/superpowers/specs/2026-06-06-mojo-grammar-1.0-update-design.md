@@ -3,6 +3,7 @@
 **Date:** 2026-06-07
 **Status:** Implemented and verified
 **Branch:** `feat/self-host-treesitter-parser`
+**v1.0.0b2 update:** `fn` → `@keyword.error`, trailing `where` on struct/alias, `@unavailable` decorator, param-`where` → `@keyword.deprecated`. See `docs/TODO.md` task #5.
 
 ## Summary
 

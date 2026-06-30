@@ -45,7 +45,6 @@ M.keywords = {
 	"case",
 	"exec",
 	-- Mojo-specific
-	"fn",
 	"struct",
 	"trait",
 	"var",
@@ -53,7 +52,6 @@ M.keywords = {
 	"comptime",
 	"raises",
 	"thin",
-	"register_passable",
 	"borrowed",
 	"inout",
 	"mut",
@@ -68,7 +66,7 @@ M.keywords = {
 	"None",
 }
 
---- Audited against Mojo stdlib tag mojo/v1.0.0b1 (std/prelude/__init__.mojo).
+--- Audited against Mojo stdlib tag mojo/v1.0.0b2 (std/prelude/__init__.mojo).
 --- Python-only names dropped; capitalized types go in M.types.
 --- @type string[]
 M.builtins = {
@@ -153,6 +151,17 @@ M.types = {
 	"DynamicVector",
 	"StringSlice",
 	"StringRef",
+	"BinaryHeap",
+	"WeakPointer",
+	"Allocation",
+	"ThinAllocation",
+	"Layout",
+	"UntrackedOrigin",
+	"UnsafeAnyOrigin",
+	"CompletionFlag",
+	"DevicePointer",
+	"DeviceContextList",
+	"ReflectedFn",
 }
 
 --- @class Mojo-lang.Snippet
@@ -163,11 +172,11 @@ M.types = {
 --- @type Mojo-lang.Snippet[]
 M.snippets = {
 	{
-		trigger = "fn",
-		body = "fn ${1:name}(${2})$3 -> ${4:Type}:\n\t$0",
-		description = "fn definition with return type",
+		trigger = "def",
+		body = "def ${1:name}(${2})$3 -> ${4:Type}:\n\t$0",
+		description = "def definition with return type",
 	},
-	{ trigger = "sfn", body = "fn ${1:name}(${2})${3}:\n\t$0", description = "fn definition without return type" },
+	{ trigger = "sdef", body = "def ${1:name}(${2})${3}:\n\t$0", description = "def definition without return type" },
 	{ trigger = "struct", body = "struct ${1:Name}:\n\t$0", description = "struct definition" },
 	{ trigger = "trait", body = "trait ${1:Name}:\n\t$0", description = "trait definition" },
 	{ trigger = "vdef", body = "var ${1:name}: ${2:Type} = ${3:value}", description = "var definition" },

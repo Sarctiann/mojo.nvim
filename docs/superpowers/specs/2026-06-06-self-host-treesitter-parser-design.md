@@ -1,7 +1,7 @@
 # Self-Host Tree-Sitter Mojo Parser
 
 **Date:** 2026-06-06
-**Status:** Draft
+**Status:** Implemented
 **TODO Item:** P0 #1 — Re-implement tree-sitter-mojo parser in-repo
 **Rule:** AGENTS.md §3 (No Third-Party Mojo Plugin Dependencies)
 

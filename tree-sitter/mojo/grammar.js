@@ -587,6 +587,7 @@ module.exports = grammar({
       // An optional trait/type bound on the alias, e.g.
       //   comptime It[...]: Iterator = Self
       optional(seq(':', field('type', $.type))),
+      repeat($.where_clause),
       '=',
       field('value', $._right_hand_side),
     )),
@@ -599,6 +600,7 @@ module.exports = grammar({
         'superclasses',
         optional(alias($.superclass_list, $.argument_list)),
       ),
+      repeat($.where_clause),
       ':',
       field('body', $._suite),
     ),

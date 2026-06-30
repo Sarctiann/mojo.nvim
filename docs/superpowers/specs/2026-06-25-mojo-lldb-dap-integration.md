@@ -1,6 +1,6 @@
 # mojo-lldb-dap Integration (nvim-dap)
 
-**Status:** Draft
+**Status:** Implemented
 
 ## Goal
 

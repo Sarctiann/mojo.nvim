@@ -54,11 +54,11 @@
 
 ((decorator
   (identifier) @attribute.builtin)
- (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod)$"))
+ (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod|unavailable)$"))
 
 ((decorator
   (call function: (identifier) @attribute.builtin))
- (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod)$"))
+ (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod|unavailable)$"))
 
 ; Function calls
 
@@ -197,7 +197,6 @@
 ; Mojo-specific declaration and effect keywords
 
 [
-  "fn"
   "struct"
   "trait"
   "type"
@@ -215,8 +214,20 @@
   "inferred"
 ] @keyword
 
-; Mojo argument-convention keywords — highlighted as @keyword.modifier so
-; themes can colour them distinctly from control-flow keywords.
+; `fn` is a hard compilation error in Mojo v1.0.0b2 — keep parsing for
+; legacy code but mark it as an error in highlighting.
+
+[
+  "fn"
+] @keyword.error
+
+; `where` in type parameter lists is deprecated in Mojo v1.0.0b2.
+; Use a trailing `where` clause on the declaration instead.
+
+(type_parameter
+  (where_clause
+    "where" @keyword.deprecated)
+  (#set! priority 105))
 
 [
   "borrowed"

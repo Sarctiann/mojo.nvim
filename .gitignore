@@ -7,6 +7,8 @@ build
 /target/
 parser.so
 parser.dylib
+tree-sitter/**/*.so
+tree-sitter/**/*.dylib
 *.log
 posts/
 plans/
@@ -15,3 +17,4 @@ _mojo-debug/
 .venv/
 *.mojo-dap-bin
 *.mojo-dap-bin.dSYM
+*.egg-info/
