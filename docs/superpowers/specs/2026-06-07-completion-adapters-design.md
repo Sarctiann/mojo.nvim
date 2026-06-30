@@ -1,6 +1,6 @@
 # Completion Adapters for nvim-cmp and blink.cmp — Design
 
-**Status:** Approved
+**Status:** Implemented
 
 ## Goal
 
