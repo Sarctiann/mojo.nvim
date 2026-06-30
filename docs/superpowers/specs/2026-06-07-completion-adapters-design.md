@@ -1,6 +1,7 @@
 # Completion Adapters for nvim-cmp and blink.cmp — Design
 
 **Status:** Implemented
+**Divergence:** Mojo v1.0.0b2 removed `fn` and `register_passable` — these were dropped from the keyword list. `fn`/`sfn` snippets changed to `def`/`sdef`. 11 new stdlib types added. See `docs/TODO.md` tasks #1-#4.
 
 ## Goal
 
