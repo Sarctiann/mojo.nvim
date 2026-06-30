@@ -1,58 +1,59 @@
 # test-mojo-pixi
 
-Pixi-based Mojo project for debugger testing.
+Sample Mojo project managed with [pixi](https://pixi.sh). Used for manual
+debugger testing of [mojo.nvim](https://github.com/Sarctiann/mojo.nvim).
 
-## Setup
+## Setup (from scratch)
+
+Follows the official [Mojo quickstart for pixi](https://mojolang.org/install/):
 
 ```bash
-cd tests/mojo_samples/test-mojo-pixi
-pixi install
-pixi shell -e nvim
-nvim main.mojo
+# 1. Install pixi (if needed)
+curl -fsSL https://pixi.sh/install.sh | sh
+
+# 2. Create the project
+pixi init test-mojo-pixi \
+    -c https://conda.modular.com/max/  -c conda-forge
+cd test-mojo-pixi
+
+# 3. Add the mojo package
+pixi add mojo
+
+# 4. Enter the project environment
+pixi shell
 ```
 
-## Workflow 1 — Native Debugger (`dbg_ntv`)
+This project is already initialized - just run `pixi install` and `pixi shell`.
 
-Uses `mojo-lldb` in a terminal split. Keybindings (normal mode): `r` run,
-`n` next, `s` step, `c` continue, `v` variables, `b` sync breakpoints, `q` close.
+## Run
 
-| Step | Action               | Expected                                                    |
-| ---- | -------------------- | ----------------------------------------------------------- |
-| 1    | `:Mojo debug-native` | Terminal split opens with `(lldb)` prompt. Build completes. |
-| 2    | Press `r`            | Runs, stops at breakpoint (if set). Shows `Hello, debug!`.  |
-| 3    | Press `c`            | Continues to next breakpoint or exit.                       |
-| 4    | Press `v`            | Shows frame variables (`counter`, `i`).                     |
-| 5    | Press `q`            | Terminal closes.                                            |
+```bash
+pixi run mojo run main.mojo
+```
 
-## Workflow 2 — DAP Debugger (`dbg_dap`)
+Expected output:
 
-Requires [nvim-dap]. Uses `mojo-lldb-dap` with nvim-dap UI.
-Binary discovery is configurable via `debug.search_for` in the plugin config.
+```
+Hello, debug!
+Step 0 counter = 1
+Step 1 counter = 3
+Step 2 counter = 6
+Step 3 counter = 10
+Step 4 counter = 15
 
-| Step | Action                      | Expected                                          |
-| ---- | --------------------------- | ------------------------------------------------- |
-| 1    | Toggle breakpoint at line 6 | `<leader>db` — breakpoint sign appears in gutter. |
-| 2    | `:Mojo debug-dap`           | nvim-dap session starts, pauses at entry.         |
-| 3    | `<F5>` (continue)           | Runs to breakpoint at line 6.                     |
-| 4    | `<F10>` (step over)         | Steps to next line.                               |
-| 5    | `<F5>` until exit           | Program completes.                                |
+Final counter: 15
+```
 
-## Breakpoint Sync (`dbg_ntv`)
+## Debug
 
-Editor breakpoints are synced to LLDB on start, save, and manual `b` trigger.
+See the [debugger testing guide](../../../docs/testing-debugger.md) for the full
+step-by-step manual test procedure covering both native (`dbg_ntv`) and DAP
+(`dbg_dap`) backends.
 
-1. Toggle breakpoints at lines 4 and 7 with `<leader>db`
-2. `:Mojo debug-native`
-3. LLDB output shows `Breakpoint 1: where = main::main` at correct lines
-4. Press `r` → stops at first breakpoint
-5. `:w` → breakpoints re-sync automatically
+Quick start:
 
-## Statusline
-
-| State               | Indicator                      |
-| ------------------- | ------------------------------ |
-| No session          | `dbg_ntv` / `dbg_dap` (dimmed) |
-| Native debug active | `dbg_ntv` (highlighted)        |
-| DAP debug active    | `dbg_dap` (highlighted)        |
-
-[nvim-dap]: https://github.com/mfussenegger/nvim-dap
+```bash
+pixi shell -e nvim
+:Mojo debug-native   " native LLDB terminal
+:Mojo debug-dap      " nvim-dap + mojo-lldb-dap
+```

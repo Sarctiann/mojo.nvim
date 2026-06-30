@@ -1,11 +1,23 @@
 # Debug Improvements — Unified Debug Experience
 
-**Status:** Draft
+**Status:** Partially Implemented
 **Date:** 2026-06-28
+**Updated:** 2026-06-29 (post debugger bugfix session)
+
+## Implementation Divergences
+
+| Spec | Implementation | Reason |
+|------|---------------|--------|
+| `breakpoints.lua` toggle/clear use only signs | Uses nvim-dap `dap.breakpoints` API when available, `MojoBreakpoint` signs as fallback | Integrates with `<leader>db` keymap; breakpoints shared across backends |
+| `sync()` does incremental diff with LLDB ID tracking | `sync_all()` re-sends all breakpoints (no ID tracking) | Simpler, no parsing needed; duplicate `breakpoint set` is idempotent in LLDB |
+| `M.status()` returns `{ backends: string[] }` | Returns `{ native: boolean, dap: boolean, active: string\|nil }` | Simpler for statusline rendering |
+| `get_buffer_bps()` returns `{ [line] = true }` | `get_lines()` returns sorted `integer[]` | More ergonomic for iteration |
+| `debug.start()` uses `active_backend` optimistic set | `_start_dap()` sets `active_backend` inside, with `pcall` wrapper on `dap.run()` | Prevents false "active" status on DAP launch failure |
+| Double build on DAP launch | `mojoFile` returns source path directly; `program` calls `M.build()` once | Eliminates redundant compilation |
 
 ## Goal
 
-Unify mojo.nvim's two debugging backends (`dbg_native` via `mojo debug` terminal,
+Unify mojo.nvim's two debugging backends (`dbg_native` via `mojo-lldb` terminal,
 `dbg_dap` via `mojo-lldb-dap` + nvim-dap) behind a single user-facing interface
 with shared breakpoints, consistent commands, and auto-scroll.
 
@@ -32,8 +44,8 @@ There is no shared breakpoint system, no unified entry point, and no auto-scroll
 lua/mojo/
 ├── debug/                  <-- NEW directory
 │   ├── init.lua            -- Public API: start(), toggle_bp(), clear_bps(), status()
-│   ├── native.lua          -- dbg_native: mojo debug terminal, LLDB command dispatch
-│   ├── breakpoints.lua     -- Shared BP signs, diff tracking, LLDB sync
+│   ├── native.lua          -- dbg_native: mojo-lldb terminal, LLDB command dispatch
+│   ├── breakpoints.lua     -- Shared BP signs, nvim-dap integration, LLDB sync
 │   └── window.lua          -- Terminal window, winbar, keymaps, auto-scroll
 ├── adapters/dap.lua        -- UNCHANGED: nvim-dap bridge (optional dependency)
 ├── env/bin.lua             -- MODIFIED: add get_dbg_native_cmd("mojo-lldb")
@@ -50,21 +62,21 @@ lua/mojo/
       ▼
 debug.start("auto")
       │
-      ├── env.get_dap_cmd() trouve mojo-lldb-dap?
-      │        └── sí → adapters/dap.lua (nvim-dap, sin cambios)
+      ├── env.get_dap_cmd() finds mojo-lldb-dap?
+      │        └── yes → adapters/dap.lua (nvim-dap, unchanged)
       │
-      └── env.get_dbg_native_cmd("mojo-lldb") ou get_mojo_cmd() existe?
+      └── env.get_dbg_native_cmd("mojo-lldb") or get_mojo_cmd() exists?
                │
-               ├── Nota: en pixi → mojo-lldb (LLDB CLI completo + breakpoints)
-               ├── Nota: en uv   → mojo debug (vía mojo CLI, sin mojo-lldb)
+               ├── Note: on pixi → mojo-lldb (full LLDB CLI + breakpoints)
+               ├── Note: on uv   → mojo debug (via mojo CLI, without mojo-lldb)
                │
-               └── sí → debug/native.lua
+               └── yes → debug/native.lua
                           │
-                          ├── debug/window.lua: abre terminal mojo debug <file>
-                          │   - winbar con keymaps [r][n][s][c][v][b][q]
+                          ├── debug/window.lua: opens terminal mojo-lldb <file>
+                          │   - winbar with keymaps [r][n][s][c][v][b][q]
                           │   - auto-scroll configurable
-                          ├── debug/breakpoints.lua: lee signs → envía commands LLDB
-                          └── debug/breakpoints.lua: activa watcher para cambios
+                          ├── debug/breakpoints.lua: reads signs → sends LLDB commands
+                          └── debug/breakpoints.lua: activates watcher for changes
 ```
 
 ## Components
@@ -86,27 +98,28 @@ function M.clear_bps()
 function M.status()
 ```
 
-- `start("auto")`: tries `get_dbg_dap_cmd()`, then `get_dbg_native_cmd()`, in order
+- `start("auto")`: tries `get_dap_cmd()`, then `get_dbg_native_cmd()`, in order
 - `start("native")`: forces terminal-based debugging
 - `start("dap")`: forces nvim-dap (requires nvim-dap installed)
 
 ### `debug/native.lua` — dbg_native backend
 
 Responsibilities:
-- Abrir terminal con `mojo debug <file>` via `vim.cmd("belowright terminal ...")`
-- Mantener referencia al job_id y buffer de la terminal
-- `send_command(cmd)` — envía comando LLDB al terminal job
-- `send_breakpoint(line)` — envía `breakpoint set --file "<file>" --line <N>`
-- `remove_breakpoint(id)` — envía `breakpoint delete <id>`
-- `close()` — cierra la terminal si está abierta
+- Open terminal with `mojo-lldb <binary>` via `vim.cmd("belowright terminal ...")`
+- Maintain reference to terminal job_id and buffer
+- `send_command(cmd)` — send LLDB command to terminal job
+- `send_breakpoint(line)` — send `breakpoint set --file "<file>" --line <N>`
+- `remove_breakpoint(id)` — send `breakpoint delete <id>`
+- `close()` — close the terminal if open
 
 State tracking:
-- LLDB breakpoint IDs (asignados por LLDB) mapeados a líneas de Neovim
-- Requiere parsear output de `breakpoint set` para extraer el `id` (ej: `Breakpoint 1: where = ...`)
+- LLDB breakpoint IDs (assigned by LLDB) mapped to Neovim lines
+- Requires parsing `breakpoint set` output to extract the `id` (e.g.: `Breakpoint 1: where = ...`)
 
 ### `debug/breakpoints.lua` — Shared breakpoints
 
-Sin dependencias externas. Usa `vim.fn.sign_getplaced()` para leer breakpoints.
+No external dependencies. Uses nvim-dap's `dap.breakpoints` API when available,
+falls back to `vim.fn.sign_getplaced()` for standalone native debugging.
 
 ```lua
 function M.get_buffer_bps(buf)
@@ -114,20 +127,20 @@ function M.get_buffer_bps(buf)
 end
 
 function M.toggle(buf, line)
-  --- Adds or removes a sign
+  --- Adds or removes a breakpoint
 end
 
 function M.clear(buf)
-  --- Removes all signs
+  --- Removes all breakpoints
 end
 
 function M.sync(chan_id, filepath)
-  --- Calculates diff between Nvim signs and LLDB state
+  --- Calculates diff between editor breakpoints and LLDB state
   --- Sends breakpoint set/delete to terminal job
 end
 
 function M.watch(chan_id, filepath)
-  --- Sets up autocmd to detect sign changes on BufWritePost/BufLeave
+  --- Sets up autocmd to detect breakpoint changes on BufWritePost/BufLeave
   --- Calls sync() on change
 end
 
@@ -142,16 +155,16 @@ vim.fn.sign_define("MojoBreakpoint", { text = "●", texthl = "DiagnosticSignErr
 ```
 
 Tracking LLDB breakpoint IDs:
-- Después de `breakpoint set`, LLDB responde con `Breakpoint N: ...`
-- Se parsea esa respuesta y se guarda `lua_breakpoints[line] = lldb_id`
-- Al hacer diff, los IDs viejos se usan para `breakpoint delete <id>`
+- After `breakpoint set`, LLDB responds with `Breakpoint N: ...`
+- Parse that response and store `lua_breakpoints[line] = lldb_id`
+- On diff, old IDs are used for `breakpoint delete <id>`
 
 ### `debug/window.lua` — Terminal window management
 
-- Reutiliza y mejora lo que ya existe en `commands.lua:setup_debug_terminal()`
-- Winbar con keymaps: `[r]un [n]ext [s]tep [c]ontinue [v]ars [q]uit`
-- Auto-scroll: después de cada `chan_send`, mueve cursor al final del buffer
-- Configurable vía `config.debug.auto_scroll` (default: true)
+- Reuses and improves what already exists in `commands.lua:setup_debug_terminal()`
+- Winbar with keymaps: `[r]un [n]ext [s]tep [c]ontinue [v]ars [b]ps [q]uit`
+- Auto-scroll: after each `chan_send`, move cursor to end of buffer
+- Configurable via `config.debug.auto_scroll` (default: true)
 
 ```lua
 function M.setup_window(buf, win)
@@ -186,7 +199,7 @@ end
 --- @field adapter (fun(opts: Mojo-lang.DebugConfig): boolean)|nil
 ```
 
-Default: `{ enabled = false, auto_scroll = true, auto_backend = nil }`
+Default: `{ enabled = true, auto_scroll = true, auto_backend = nil }`
 
 ### Commands — `commands.lua`
 
@@ -196,7 +209,7 @@ Default: `{ enabled = false, auto_scroll = true, auto_backend = nil }`
 :Mojo debug dap         — start("dap")
 ```
 
-El master command `:Mojo` se extiende:
+The master `:Mojo` command is extended:
 ```lua
 local dispatch = {
   ["debug"] = function(args)
@@ -208,15 +221,15 @@ local dispatch = {
 }
 ```
 
-El subcommand `debug` acepta `nargs = "?"`, completa con `native`/`dap`.
+The `debug` subcommand accepts `nargs = "?"`, completes with `native`/`dap`.
 
 ### Status — `status.lua`
 
-`dbg_status()` se actualiza para reflejar ambos backends:
+`dbg_status()` updated to reflect both backends:
 
 ```lua
 function M.dbg_status()
-  local has_dap = env.get_dbg_dap_cmd() ~= nil
+  local has_dap = env.get_dap_cmd() ~= nil
   local has_native = env.get_dbg_native_cmd() ~= nil
   if has_dap then
     local ok, dap = pcall(require, "dap")
@@ -245,46 +258,46 @@ for line, _ in pairs(buffer_bps) do
 end
 ```
 
-LLDB response por cada `breakpoint set`:
+LLDB response for each `breakpoint set`:
 ```
 Breakpoint 1: where = File.swift:12, address = ...
 ```
 
-Parseo simple: capturar `Breakpoint (\d+)` con `string.match()`.
+Simple parse: capture `Breakpoint (\d+)` with `string.match()`.
 
 ### Incremental sync (on change)
 
-Cuando el usuario agrega/quita breakpoints mientras dbg_native está activo:
+When the user adds/removes breakpoints while dbg_native is active:
 
-1. `watch_bps()` detecta cambio via `BufWritePost` o `BufLeave`
-2. `sync_bps()` compara `current_signs` vs `lldb_state`
-3. Para cada línea nueva: `breakpoint set --file ... --line ...`
-4. Para cada línea removida: `breakpoint delete <id>`
-5. Actualiza `lldb_state` map
+1. `watch_bps()` detects change via `BufWritePost` or `BufLeave`
+2. `sync_bps()` compares `current_signs` vs `lldb_state`
+3. For each new line: `breakpoint set --file ... --line ...`
+4. For each removed line: `breakpoint delete <id>`
+5. Updates `lldb_state` map
 
 ### Edge cases
 
-- Archivo guardado con nuevas líneas → breakpoints en líneas incorrectas. No se
-  intenta re-mapear; el usuario debe re-aplicar breakpoints. Se podría mejorar
-  en el futuro con tracking de cambios de línea.
-- Múltiples archivos abiertos → solo el archivo actual está en debug.
-- LLDB no responde → se ignora el error (el usuario ve el error en la terminal).
+- File saved with new lines → breakpoints on incorrect lines. No attempt is made
+  to remap; the user must re-apply breakpoints. Could be improved in the future
+  with line-change tracking.
+- Multiple files open → only the current file is in debug.
+- LLDB does not respond → the error is ignored (the user sees the error in the terminal).
 
 ## Auto-scroll
 
-Después de cada `vim.api.nvim_chan_send()`, si `config.debug.auto_scroll != false`:
+After each `vim.api.nvim_chan_send()`, if `config.debug.auto_scroll != false`:
 
 ```lua
 local line_count = vim.api.nvim_buf_line_count(buf)
 vim.api.nvim_win_set_cursor(win, { line_count, 0 })
 ```
 
-Esto asegura que el output de LLDB (breakpoints, backtraces, variables) sea
-visible sin scroll manual.
+This ensures LLDB output (breakpoints, backtraces, variables) is visible without
+manual scrolling.
 
 ## Omitted from scope
 
 - **neotest integration** — blocked upstream (mojo test not stable)
 - **Visualizers** (lldbDataFormatters.py) — handled automatically by `mojo-lldb-dap`
   wrapper; out of scope for this module
-- **Multi-session** — solo un debug a la vez
+- **Multi-session** — only one debug session at a time
