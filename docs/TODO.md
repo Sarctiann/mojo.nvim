@@ -93,8 +93,8 @@
 
 | Mojo Change                                | Status | Notes                                                        |
 | ------------------------------------------ | ------ | ------------------------------------------------------------ |
-| `fn` keyword now a compilation error       | ❌     | Still in completion keywords, snippets, treesitter → Task #1 |
-| `register_passable` effect keyword removed | ❌     | Still in completion keywords → Task #2                       |
+| `fn` keyword now a compilation error       | 🟡     | Completion + snippets updated; treesitter grammar pending Task #5 |
+| `register_passable` effect keyword removed | 🟡     | Completion updated; treesitter grammar pending Task #5         |
 | Trailing `where` on struct declarations    | 🟡     | Treesitter may not parse it yet → Task #5                    |
 | Trailing `where` on `comptime` alias       | 🟡     | Treesitter may not parse it yet → Task #5                    |
 | `@unavailable` decorator                   | 🟡     | Not in completion keywords → Task #5                         |
@@ -107,7 +107,7 @@
 | Mojo Change                                        | Status | Notes                                                               |
 | -------------------------------------------------- | ------ | ------------------------------------------------------------------- |
 | `mojo package` → `mojo precompile`                 | 🟡     | No references in codebase; terminal cmds fine                       |
-| `.mojopkg` deprecated → `.mojoc`                   | ❌     | `.mojoc` not registered in filetype detection → Task #3             |
+| `.mojopkg` deprecated → `.mojoc`                   | ✅     | `.mojoc` added to filetype detection; `.mojo` covers JIT files |
 | `mojo --print-cache-location`                      | ❌     | No user command exposed                                             |
 | `mojo --clear-cache`                               | ❌     | No user command exposed                                             |
 | LSP: `ContentModified` instead of `InvalidRequest` | ✅     | Server fix; benefits Neovim's built-in LSP                          |
@@ -127,38 +127,38 @@
 
 ## P1 — Language Sync
 
-### 1. Remove `fn` keyword from completion source & snippets
+### ~~1. Remove `fn` keyword from completion source & snippets~~ [done]
 
-**Created:** 2026-06-29 | **Updated:** 2026-06-29
+**Created:** 2026-06-29 | **Updated:** 2026-06-30
 **Sovereignty:** Rule 1 (Centralization) — completion must reflect the current language.
 **Why:** Mojo v1.0.0b2 made `fn` a compilation error (was a warning). `def` is now the single function-declaration keyword.
 
 **Scope:**
 
-- Remove `"fn"` from `completion.lua` keywords list
-- Change `fn` snippet trigger to `def` with `def` body
-- Change `sfn` snippet trigger to `sdef` with `def` body
+- Remove `"fn"` from `completion.lua` keywords list ✅
+- Change `fn` snippet trigger to `def` with `def` body ✅
+- Change `sfn` snippet trigger to `sdef` with `def` body ✅
 
-### 2. Remove `register_passable` keyword from completion source
+### ~~2. Remove `register_passable` keyword from completion source~~ [done]
 
-**Created:** 2026-06-29 | **Updated:** 2026-06-29
+**Created:** 2026-06-29 | **Updated:** 2026-06-30
 **Sovereignty:** Rule 1 (Centralization) — completion must reflect the current language.
 **Why:** Mojo v1.0.0b2 removed the `register_passable` effect keyword. Register passability is now computed implicitly.
 
 **Scope:**
 
-- Remove `"register_passable"` from `completion.lua` keywords list
-- Update design spec `2026-06-06-mojo-grammar-1.0-update-design.md` to note the removal
+- Remove `"register_passable"` from `completion.lua` keywords list ✅
+- Update design spec `2026-06-06-mojo-grammar-1.0-update-design.md` to note the removal ✅
 
-### 3. Add `.mojoc` file extension to filetype detection
+### ~~3. Add `.mojoc` file extension to filetype detection~~ [done]
 
-**Created:** 2026-06-29 | **Updated:** 2026-06-29
+**Created:** 2026-06-29 | **Updated:** 2026-06-30
 **Sovereignty:** Rule 1 (Centralization) — all Mojo file types must be recognized.
 **Why:** Mojo v1.0.0b2 renamed `mojo package` → `mojo precompile` and deprecated `.mojopkg` in favor of `.mojoc`.
 
 **Scope:**
 
-- Add `.mojoc` extension mapping to `mojo` filetype in `filetype.lua`
+- Add `.mojoc` extension mapping to `mojo` filetype in `filetype.lua` ✅
 
 ---
 

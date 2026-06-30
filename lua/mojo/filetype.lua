@@ -7,12 +7,13 @@ function M.setup()
 	vim.filetype.add({
 		extension = {
 			mojo = "mojo",
+			mojoc = "mojo",
 			["🔥"] = "mojo",
 		},
 	})
 
 	vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
-		pattern = { "*.mojo", "*.🔥" },
+		pattern = { "*.mojo", "*.mojoc", "*.🔥" },
 		callback = function(ev)
 			local path = vim.api.nvim_buf_get_name(ev.buf)
 			env.activate_for_dir(path)
