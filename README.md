@@ -35,7 +35,7 @@ Centralizes filetype detection, Treesitter, LSP, formatting, and environment act
 
 ## What it provides
 
-- `.mojo` and `🔥` filetype detection
+- `.mojo`, `.mojoc`, and `🔥` filetype detection
 - Treesitter parser registration for Mojo
 - Environment helpers for Pixi, virtualenv, and manual SDK paths
 - LSP and formatter integration (native `vim.lsp.config` / `conform.nvim`)
@@ -55,7 +55,7 @@ Centralizes filetype detection, Treesitter, LSP, formatting, and environment act
 
 ### Filetype
 
-`.mojo` and `🔥` files are automatically recognized as `mojo` filetype. The plugin adds these to Neovim's filetype detection and triggers environment activation for each Mojo buffer.
+`.mojo`, `.mojoc`, and `🔥` files are automatically recognized as `mojo` filetype. The plugin adds these to Neovim's filetype detection and triggers environment activation for each Mojo buffer.
 
 ### Environment
 
@@ -79,7 +79,7 @@ Auto-activates the project environment in new shell terminal buffers. Detects sh
 
 ### Completion
 
-Provides keyword autocompletion for Mojo-specific keywords (53), builtin functions (38), standard library types (30), and snippets (12). Integrates with nvim-cmp and blink.cmp via dedicated adapters. Completion is context-aware — it defers to LSP completions after `.` and `:`.
+Provides keyword autocompletion for Mojo-specific keywords (54), builtin functions (42), standard library types (46), and snippets (13). Integrates with nvim-cmp and blink.cmp via dedicated adapters. Completion is context-aware — it defers to LSP completions after `.` and `:`.
 
 ### Run
 

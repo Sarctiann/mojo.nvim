@@ -164,7 +164,7 @@
 
 ## P2 — Quality & Completeness
 
-### 4. Re-audit completion builtins for Mojo v1.0.0b2 stdlib
+### ~~4. Re-audit completion builtins for Mojo v1.0.0b2 stdlib~~ [done]
 
 **Created:** 2026-06-29 | **Updated:** 2026-06-30
 **Sovereignty:** Rule 1 (Centralization) — completion builtins must match the current stdlib.
@@ -172,7 +172,7 @@
 
 **Scope:**
 
-- Compare current `completion.lua` builtins/attrs/types lists against v1.0.0b2 stdlib 🟡 partial
+- Compare current `completion.lua` builtins/attrs/types lists against v1.0.0b2 stdlib ✅
 - Add new types: `BinaryHeap`, `WeakPointer`, `Allocation`, `ThinAllocation`, `Layout`, `UntrackedOrigin`, `UnsafeAnyOrigin`, `CompletionFlag`, `DevicePointer`, `DeviceContextList`, `ReflectedFn` ✅
 - Remove/deprecate: `ExternalOrigin` → `UntrackedOrigin`, `AnyOrigin` → `UnsafeAnyOrigin` ✅
 - Update audit comment in `completion.lua` to reference v1.0.0b2 ✅
@@ -202,3 +202,50 @@
 
 - Document lualine icon configuration options in README ✅
 - Add example lualine config snippet showing SDK version + env name display ✅
+
+### 7. Expose `mojo --print-cache-location` and `mojo --clear-cache` as user commands
+
+**Created:** 2026-06-30 | **Updated:** 2026-06-30
+**Sovereignty:** Rule 1 (Centralization) — all useful Mojo CLI commands should be accessible.
+**Why:** Mojo v1.0.0b2 added `mojo --print-cache-location` and `mojo --clear-cache` CLI options. These are not exposed as Neovim user commands.
+
+**Scope:**
+
+- Add `:MojoCacheLocation` command that echoes the cache path in a notification
+- Add `:MojoClearCache` command with confirmation dialog
+- Add to `:Mojo menu` floating window
+
+### 8. Expose `buildArgs` in debug launch configuration
+
+**Created:** 2026-06-30 | **Updated:** 2026-06-30
+**Sovereignty:** Rule 2 (Modular → Official Replacement Path) — debug module API.
+**Why:** The VS Code extension supports `buildArgs` for passing extra flags to `mojo build` during debug compilation. mojo.nvim's DAP adapter doesn't expose this.
+
+**Scope:**
+
+- Add `build_args` field to `config.debug` options
+- Pass through to `mojo build` command in DAP adapter
+- Document in README debug configuration section
+
+### 9. Load Mojo LLDB data formatters for debugging
+
+**Created:** 2026-06-30 | **Updated:** 2026-06-30
+**Sovereignty:** Rule 5 (Zero-Bundle) — discover formatters, don't bundle them.
+**Why:** The Mojo SDK ships `lldbDataFormatters.py` and `mlirDataFormatters.py` for pretty-printing Mojo types in LLDB. Our DAP and native debug adapters don't load them.
+
+**Scope:**
+
+- Detect formatter scripts in pixi/venv `lib/` directories alongside the SDK
+- Add `command script import` to LLDB init commands in both DAP and native adapters
+- Verify with a simple struct variable in debug session
+
+### 10. Document outline view usage in README
+
+**Created:** 2026-06-30 | **Updated:** 2026-06-30
+**Sovereignty:** Rule 7 (One Breaking-Change Point) — docs must reflect capabilities.
+**Why:** The LSP provides document symbols for an outline view, but there's no documentation on how to access it.
+
+**Scope:**
+
+- Add README section showing how to use `:Telescope lsp_document_symbols` or trouble for outline
+- Mention keybindings for symbol navigation

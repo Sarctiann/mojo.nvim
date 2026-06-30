@@ -81,6 +81,7 @@ mojo.nvim/
 │   │   ├── init.lua         # Public API re-exports
 │   │   ├── detect.lua       # SDK detection (pixi, venv)
 │   │   ├── bin.lua          # Binary discovery (mojo, lsp, dap)
+│   │   ├── version.lua      # SDK version parsing
 │   │   ├── activate.lua     # Environment activation
 │   │   └── util.lua         # Shared utilities
 │   └── adapters/            # Optional, stateless generic-plugin integrations
@@ -176,8 +177,10 @@ Tests live in `tests/` and run via Neovim's headless mode.
 nvim --headless -c "luafile tests/<test_file>.lua" -c "qa!"
 ```
 
-**Existing test:** `tests/test_queries.lua` — parses `.mojo` samples, reports
-Tree-sitter ERROR nodes, and runs capture assertions.
+**Existing tests:** `tests/test_queries.lua` (treesitter), `tests/test_detect.lua` (env),
+`tests/test_lualine.lua` (statusline), `tests/test_commands.lua` (commands),
+`tests/test_sdk_path.lua` (SDK path), `tests/test_status.lua` (status),
+`tests/test_version.lua` (version).
 
 **Test pattern:**
 

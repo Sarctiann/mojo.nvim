@@ -7,6 +7,8 @@ build
 /target/
 parser.so
 parser.dylib
+tree-sitter/**/*.so
+tree-sitter/**/*.dylib
 *.log
 posts/
 plans/
