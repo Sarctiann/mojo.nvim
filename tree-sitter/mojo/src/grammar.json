@@ -2493,6 +2493,13 @@
             ]
           },
           {
+            "type": "REPEAT",
+            "content": {
+              "type": "SYMBOL",
+              "name": "where_clause"
+            }
+          },
+          {
             "type": "STRING",
             "value": "="
           },
@@ -2566,6 +2573,13 @@
                 "type": "BLANK"
               }
             ]
+          }
+        },
+        {
+          "type": "REPEAT",
+          "content": {
+            "type": "SYMBOL",
+            "name": "where_clause"
           }
         },
         {

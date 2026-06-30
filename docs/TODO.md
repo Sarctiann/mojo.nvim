@@ -93,14 +93,14 @@
 
 | Mojo Change                                | Status | Notes                                                        |
 | ------------------------------------------ | ------ | ------------------------------------------------------------ |
-| `fn` keyword now a compilation error       | 🟡     | Completion + snippets updated; treesitter grammar pending Task #5 |
-| `register_passable` effect keyword removed | 🟡     | Completion updated; treesitter grammar pending Task #5         |
-| Trailing `where` on struct declarations    | 🟡     | Treesitter may not parse it yet → Task #5                    |
-| Trailing `where` on `comptime` alias       | 🟡     | Treesitter may not parse it yet → Task #5                    |
-| `@unavailable` decorator                   | 🟡     | Not in completion keywords → Task #5                         |
+| `fn` keyword now a compilation error       | 🟡     | Completion + snippets updated; treesitter: fn marked @keyword.error |
+| `register_passable` effect keyword removed | ✅     | Removed from completion; already absent from grammar |
+| Trailing `where` on struct declarations    | ✅     | Added to grammar.js class_definition                           |
+| Trailing `where` on `comptime` alias       | ✅     | Added to grammar.js parameterized_alias_statement           |
+| `@unavailable` decorator                   | ✅     | Added to highlights.scm builtin decorators                     |
 | Conditional ImplicitlyDestructible         | 🟡     | `where conforms_to` on struct traits                         |
 | `@export` must have explicit `abi` effect  | 🟡     | Warning in v1.0.0b2, error in future release                 |
-| `where` clauses in param lists deprecated  | 🟡     | Move to trailing `where` on declaration                      |
+| `where` clauses in param lists deprecated  | ✅     | Param-list where marked @keyword.deprecated in highlights.scm
 
 ### Tooling
 
@@ -177,20 +177,20 @@
 - Remove/deprecate: `ExternalOrigin` → `UntrackedOrigin`, `AnyOrigin` → `UnsafeAnyOrigin` ✅
 - Update audit comment in `completion.lua` to reference v1.0.0b2 ✅
 
-### 5. Update treesitter grammar for Mojo v1.0.0b2 syntax changes
+### ~~5. Update treesitter grammar for Mojo v1.0.0b2 syntax changes~~ [done]
 
-**Created:** 2026-06-29 | **Updated:** 2026-06-29
+**Created:** 2026-06-29 | **Updated:** 2026-06-30
 **Sovereignty:** Rule 3 (No Third-Party) — treesitter grammar bundled in the repo.
 **Why:** Mojo v1.0.0b2 changed several syntax rules: `fn` is an error, `register_passable` removed, trailing `where` on struct/comptime declarations added, `@unavailable` decorator added, param-`where` deprecated.
 
 **Scope:**
 
-- Deprecate `fn` in grammar (keep parsing for legacy code, mark as `@keyword.error` in highlights)
-- Remove `register_passable` from effect keywords
-- Add trailing `where` clause support to struct and comptime alias declarations
-- Add `@unavailable` decorator parsing
-- Mark param-list `where` as `@keyword.deprecated` in highlights
-- ⏳ Not blocked — grammar is self-hosted in `tree-sitter/mojo/grammar.js`, can be updated directly
+- Deprecate `fn` in grammar (keep parsing for legacy code, mark as `@keyword.error` in highlights) ✅
+- Remove `register_passable` from effect keywords ✅ (already absent from grammar)
+- Add trailing `where` clause support to struct and comptime alias declarations ✅
+- Add `@unavailable` decorator parsing ✅ (generic decorator rule already parses it; added to highlights.scm)
+- Mark param-list `where` as `@keyword.deprecated` in highlights ✅
+- Not blocked — grammar is self-hosted in `tree-sitter/mojo/grammar.js`, updated and regenerated
 
 ### 6. Lualine icon documentation [done]
 
