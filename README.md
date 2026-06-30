@@ -176,7 +176,7 @@ require("mojo").setup({
 })
 ```
 
-If you want to use a Nerd Font icon instead of the fire emoji, set `icon = "󱵮"`. You can also provide any arbitrary string as the icon.
+If you want to use another character instead of the fire emoji, set `icon = "󱵮"`. You can also provide any arbitrary string as the icon.
 
 ## Installation
 
