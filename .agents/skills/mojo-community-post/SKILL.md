@@ -21,29 +21,30 @@ Write short update posts about mojo.nvim for community channels.
 ## Format
 
 ```
-🔥 **mojo.nvim update**
+🔥 **[mojo.nvim](<repo link>) update**
 
 <1-2 sentences about what triggered this update>
+
+**What's new:**
+
+- **Feature name** *(plugin)* — description
+- **Feature name** — description
 
 **What we already support:**
 
 - **Feature name** *(plugin)* — description
 - **Feature name** — description
-
-**Next up:** <teaser>
-
-https://github.com/Sarctiann/mojo.nvim
 ```
 
 ## Rules
 
-- Keep posts short — Discord-friendly
+- Keep posts under Discord's 2000-character limit — run `scripts/check-post-length.py <post.md>` after writing
 - Lead with the trigger (new release, new feature, etc.)
 - One feature per bullet, grouped logically
 - `**Feature** *(plugin)* — desc` for plugin integrations
 - `**Feature** — desc` for self-contained features
-- "Next up" only if there are concrete plans
-- Always include the repo link at the bottom
+- Always include the repo link in the title (first line)
+- Focus on plugin tooling for Mojo — avoid repo maintenance (scripts, docs, README changes)
 
 ## Reference
 

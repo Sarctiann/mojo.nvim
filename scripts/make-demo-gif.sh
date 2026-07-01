@@ -5,15 +5,13 @@
 # becomes a short animated clip with an overlay description.
 #
 # Usage:
-#   ./scripts/make-demo-gif.sh <name> [fps] [width]
+#   ./scripts/make-demo-gif.sh <name> [--dir <path>] [--fps <n>] [--res <px>]
 #
 #   <name>       output name (required) — produces docs/readme-assets/<name>.gif
 #                and copies specs.txt → docs/readme-assets/<name>.txt
-#   fps          frames per second (default: 4)
-#   width        max width in pixels (default: 800)
-#
-# Looks for a video file (any common format) and specs.txt in the
-# current working directory.
+#   --dir <path> directory containing the video and specs.txt (default: .)
+#   --fps <n>    frames per second (default: 4)
+#   --res <px>   max width in pixels (default: 800)
 #
 # Example specs.txt:
 #   00:05|00:09|Code completion
@@ -24,27 +22,76 @@
 
 set -euo pipefail
 
-NAME="${1:-}"
-FPS="${2:-4}"
-MAX_WIDTH="${3:-800}"
-
-if [ -z "$NAME" ]; then
-	echo "Usage: $0 <name> [fps] [width]"
+usage() {
+	echo "Usage: $0 <name> [--dir <path>] [--fps <n>] [--res <px>]"
 	echo ""
-	echo "  <name>    output name (required)"
-	echo "  fps       frames per second (default: 4)"
-	echo "  width     max width in pixels (default: 800)"
+	echo "  <name>       output name (required)"
+	echo "  --dir <path> directory with video + specs.txt (default: .)"
+	echo "  --fps <n>    frames per second (default: 4)"
+	echo "  --res <px>   max width in pixels (default: 800)"
 	echo ""
-	echo "  Auto-detects a video file and specs.txt in the current directory."
+	echo "  Auto-detects a video file in the working directory."
 	echo "  Outputs to docs/readme-assets/<name>.gif and copies specs.txt."
 	exit 1
+}
+
+NAME=""
+WORK_DIR="."
+FPS=4
+MAX_WIDTH=800
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+	--dir)
+		WORK_DIR="${2:?--dir requires a path}"
+		shift 2
+		;;
+	--fps)
+		FPS="${2:?--fps requires a number}"
+		if ! [[ "$FPS" =~ ^[0-9]+$ ]]; then
+			echo "Error: --fps must be a positive integer"
+			exit 1
+		fi
+		shift 2
+		;;
+	--res)
+		MAX_WIDTH="${2:?--res requires a number}"
+		if ! [[ "$MAX_WIDTH" =~ ^[0-9]+$ ]]; then
+			echo "Error: --res must be a positive integer"
+			exit 1
+		fi
+		shift 2
+		;;
+	--help | -h)
+		usage
+		;;
+	-*)
+		echo "Error: unknown flag $1"
+		usage
+		;;
+	*)
+		if [ -z "$NAME" ]; then
+			NAME="$1"
+		else
+			echo "Error: unexpected argument '$1'"
+			usage
+		fi
+		shift
+		;;
+	esac
+done
+
+if [ -z "$NAME" ]; then
+	usage
 fi
+
+WORK_DIR="$(cd "$WORK_DIR" && pwd)"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ASSETS_DIR="$REPO_ROOT/docs/readme-assets"
 
-SPECS="specs.txt"
+SPECS="$WORK_DIR/specs.txt"
 OUTPUT="$ASSETS_DIR/$NAME.gif"
 
 command -v ffmpeg &>/dev/null || {
@@ -56,29 +103,29 @@ command -v magick &>/dev/null || {
 	exit 1
 }
 
-# Auto-detect video file in current directory
+# Auto-detect video file in working directory
 VIDEO_EXTS=("mov" "mp4" "mkv" "webm" "avi")
 FOUND_VIDEOS=()
 for ext in "${VIDEO_EXTS[@]}"; do
-	for f in *."$ext"; do
+	for f in "$WORK_DIR"/*."$ext"; do
 		[ -f "$f" ] && FOUND_VIDEOS+=("$f")
 	done
 done
 
 if [ "${#FOUND_VIDEOS[@]}" -eq 0 ]; then
-	echo "Error: no video file found in current directory"
+	echo "Error: no video file found in $WORK_DIR"
 	echo "  Supported formats: ${VIDEO_EXTS[*]}"
 	exit 1
 elif [ "${#FOUND_VIDEOS[@]}" -gt 1 ]; then
 	echo "Error: multiple video files found: ${FOUND_VIDEOS[*]}"
-	echo "  Keep only one video file in the current directory."
+	echo "  Keep only one video file in the directory."
 	exit 1
 fi
 INPUT="${FOUND_VIDEOS[0]}"
 echo "Video file: $INPUT"
 
 [ -f "$SPECS" ] || {
-	echo "Error: $SPECS not found in current directory"
+	echo "Error: $SPECS not found"
 	exit 1
 }
 
@@ -136,7 +183,7 @@ ALL_FRAMES=()
 
 echo "Processing clips..."
 
-while IFS='|' read -r START END LABEL; do
+while IFS='|' read -r START END LABEL || [ -n "$START" ]; do
 	START=$(echo "$START" | xargs)
 	END=$(echo "$END" | xargs)
 	[ -z "$START" ] && continue

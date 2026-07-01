@@ -33,14 +33,14 @@ Each feature line has one of two formats:
 - Keep the post short — Discord-friendly (no walls of text)
 - Lead with what triggered the post (new VS Code release, new feature shipped, etc.)
 - "Next up" is optional — only include if you have concrete plans
-- Always include the repo link at the bottom
+- Always include the repo link in the title (first line)
 - Use bold for feature names, italics in parentheses for plugin references
 - One feature per bullet, grouped logically
 
 ## Example
 
 ```markdown
-🔥 **mojo.nvim update**
+🔥 **[mojo.nvim](https://github.com/Sarctiann/mojo.nvim) update**
 
 We audited the latest `vscode-mojo` v26.6.0 against mojo.nvim and the gap is narrowing fast.
 
@@ -57,6 +57,4 @@ We audited the latest `vscode-mojo` v26.6.0 against mojo.nvim and the gap is nar
 - **Distro adapters** — LazyVim, AstroNvim, NvChad, kickstart.nvim
 
 **Next up:** SDK version in status bar, LSP health indicator, `mojo.sdk.path` override, `.derived/` monorepo detection, refresh/restart commands.
-
-https://github.com/Sarctiann/mojo.nvim
 ```

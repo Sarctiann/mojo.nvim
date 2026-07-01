@@ -85,11 +85,15 @@ Provides keyword autocompletion for Mojo-specific keywords (54), builtin functio
 
 Execute the current Mojo file with `:Mojo run` (opens a terminal split) or `:Mojo dedicated` (opens or reuses a dedicated terminal buffer). Both commands resolve the `mojo` binary through the active environment and display a winbar with close instructions. If `commands.spread = true`, the individual `:MojoRun` and `:MojoRunDedicated` commands are also available.
 
+![Run Mojo programs](docs/readme-assets/run-mojo.gif)
+
 ### Debug
 
 Debug the current Mojo file with `:Mojo debug` (auto-selects backend), `:Mojo debug-native` (terminal via `mojo-lldb`), or `:Mojo debug-dap` (nvim-dap). The auto backend prefers DAP when `mojo-lldb-dap` is available (pixi), falling back to native `mojo-lldb` (uv, pixi).
 
 Native debug (`:MojoDebugNative`) opens a terminal with LLDB keymaps: `r` (run), `n` (next), `s` (step), `c` (continue), `v` (frame variable), `b` (sync breakpoints), `q`/`<Esc>`/`<CR>` (close). Editor breakpoints placed via nvim-dap (`<leader>db`) or the `:Mojo debug toggle_bp` command are synced to LLDB on launch, save, and manual sync.
+
+![Debug Mojo programs](docs/readme-assets/debug-mojo.gif)
 
 DAP debug (`:MojoDebugDap`) requires [nvim-dap](https://github.com/mfussenegger/nvim-dap) and provides four launch configurations: Debug Mojo File, Debug Mojo File (with args), Debug Binary, and Attach to Process.
 
