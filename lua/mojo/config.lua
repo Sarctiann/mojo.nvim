@@ -38,11 +38,22 @@
 --- @field name string
 --- @field role "dap"|"native"
 
+--- @class Mojo-lang.DebugKeymapsConfig
+--- @field toggle_breakpoint string|false|nil
+--- @field clear_breakpoints string|false|nil
+--- @field start string|false|nil
+--- @field continue string|false|nil
+--- @field step_into string|false|nil
+--- @field step_over string|false|nil
+--- @field step_out string|false|nil
+--- @field stop string|false|nil
+
 --- @class Mojo-lang.DebugConfig
 --- @field enabled boolean|nil
 --- @field auto_scroll boolean|nil
 --- @field auto_backend "native"|"dap"|nil
 --- @field search_for Mojo-lang.DebugBinary[]|nil
+--- @field keymaps Mojo-lang.DebugKeymapsConfig|nil
 --- @field adapter (fun(opts: Mojo-lang.DebugConfig): boolean)|nil
 
 --- @class Mojo-lang.StatuslineConfig
@@ -138,6 +149,16 @@ M.defaults = {
 		enabled = true,
 		auto_scroll = true,
 		auto_backend = nil,
+		keymaps = {
+			toggle_breakpoint = "<leader>db",
+			clear_breakpoints = "<leader>dB",
+			start = "<leader>dr",
+			continue = "<leader>dc",
+			step_into = "<leader>ds",
+			step_over = "<leader>dn",
+			step_out = "<leader>do",
+			stop = "<leader>dt",
+		},
 		search_for = {
 			{ name = "lldb-dap", role = "dap" },
 			{ name = "_mojo-lldb-dap", role = "dap" },
@@ -154,9 +175,19 @@ M.defaults = {
 --- @type Mojo-lang.Config
 M.options = {}
 
+--- Keys the user explicitly configured under debug.keymaps.
+--- Used by debug/keymaps.lua to decide whether to force-set a mapping.
+--- @type table<string, string|false>|nil
+M._user_debug_keymaps = nil
+
 --- @param user_config Mojo-lang.Config|nil
 --- @return Mojo-lang.Config
 function M.setup(user_config)
+	M._user_debug_keymaps = user_config
+		and user_config.debug
+		and user_config.debug.keymaps
+		and vim.deepcopy(user_config.debug.keymaps)
+		or nil
 	M.options = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), user_config or {})
 	return M.options
 end

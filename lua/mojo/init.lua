@@ -120,6 +120,8 @@ function M.setup(user_config)
 				if km.code_action then
 					vim.keymap.set({ "n", "v" }, km.code_action, vim.lsp.buf.code_action, { buffer = true, desc = "Code action" })
 				end
+
+				require("mojo.debug.keymaps").setup()
 			end,
 		})
 	end

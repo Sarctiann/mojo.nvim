@@ -5,8 +5,46 @@ function M.check()
 
 	local ok, config = pcall(require, "mojo.config")
 	if ok then
+		local opts = config.options or {}
 		vim.health.ok("mojo.nvim is installed and loaded")
-		vim.health.info("Config: " .. vim.inspect(config.options or {}))
+
+		local function feature(name, module_name)
+			if pcall(require, module_name) then
+				vim.health.ok(name .. ": " .. module_name .. " available")
+			else
+				vim.health.warn(name
+					.. ": "
+					.. module_name
+					.. " not installed — set { "
+					.. name
+					.. " = { enabled = false } } in opts to disable")
+			end
+		end
+
+		if opts.treesitter and opts.treesitter.enabled ~= false then
+			feature("treesitter", "nvim-treesitter")
+		end
+		if opts.format and opts.format.enabled ~= false then
+			feature("format", "conform")
+		end
+		if opts.completion and opts.completion.enabled then
+			local has_blink = pcall(require, "blink.cmp")
+			local has_cmp = pcall(require, "cmp")
+			if has_blink then
+				vim.health.ok("completion: blink.cmp available")
+			elseif has_cmp then
+				vim.health.ok("completion: nvim-cmp available")
+			else
+				vim.health.warn("completion: neither blink.cmp nor nvim-cmp installed — set { completion = { enabled = false } } in opts to disable")
+			end
+		end
+		if opts.debug and opts.debug.enabled then
+			if pcall(require, "dap") then
+				vim.health.ok("debug: nvim-dap available")
+			else
+				vim.health.info("debug: nvim-dap not installed — native debug (mojo-lldb) will be used if available")
+			end
+		end
 	else
 		vim.health.error("mojo.nvim is not loaded", config)
 		return
@@ -74,6 +112,11 @@ function M.check()
 	else
 		vim.health.info("nvim-dap not installed (debug integration disabled)")
 	end
+
+	vim.health.info([[
+All features are enabled by default.
+To disable a feature, set { <feature> = { enabled = false } } in your mojo.nvim opts.
+Example: opts = { debug = { enabled = false } }]])
 end
 
 return M
