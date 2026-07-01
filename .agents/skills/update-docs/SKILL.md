@@ -59,6 +59,8 @@ confirm correctness.
 - [ ] commands documented match actual commands in `lua/mojo/commands.lua` and `init.lua`
 - [ ] keymaps documented match actual keymaps
 - [ ] installation instructions still work (check lazy.nvim, packer, etc. snippets)
+- [ ] **Configuration defaults block** — Read `config.lua` `M.defaults` line by line and compare against the `<details>` configuration block in README. Every key and sub-key in `M.defaults` must appear in the README with the same default value (including nested tables like `debug.keymaps` and `debug.search_for`). Extra entries in the README that are NOT in `M.defaults` must correspond to a `@field` type annotation in `config.lua` (e.g., `adapter` fields are defined in `@class` annotations but not in `M.defaults`). Pay special attention to deeply nested defaults — compare all levels, not just top-level keys.
+- [ ] **README emoji convention:** The README is viewed on GitHub and the web. Use standard emojis (🔥, ⚡, ✅, ❌) visible on all platforms. NEVER use Nerd Font unicode icons (󰈸, 󱵮) in README — those require special patched fonts and render as tofu on GitHub. Nerd Font icons are only acceptable in code comments or config defaults inside `config.lua`.
 - [ ] setup example still accurate against current `config.lua` defaults
 - [ ] `docs/readme-assets/` directory exists with at least one `.gif` file; if empty or missing, suggest creating a demo (see `scripts/make-demo-gif.sh`). Check `docs/readme-assets/*.txt` files to know which features are already covered — each `.txt` is a copy of the `specs.txt` used to generate the corresponding GIF, listing every feature segment included.
 - [ ] links anchor to existing sections (`#` references are valid)

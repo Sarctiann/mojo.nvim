@@ -84,6 +84,12 @@ mojo.nvim/
 │   │   ├── version.lua      # SDK version parsing
 │   │   ├── activate.lua     # Environment activation
 │   │   └── util.lua         # Shared utilities
+│   ├── debug/               # Debug subsystem
+│   │   ├── init.lua         # Public API + adapter wiring
+│   │   ├── breakpoints.lua  # Breakpoint management & sync
+│   │   ├── keymaps.lua      # Debug terminal keybindings
+│   │   ├── native.lua       # Native LLDB terminal debug
+│   │   └── window.lua       # Debug window helpers
 │   └── adapters/            # Optional, stateless generic-plugin integrations
 │       ├── lualine.lua      # lualine.nvim adapter
 │       ├── lspconfig.lua    # native vim.lsp.config adapter

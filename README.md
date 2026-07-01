@@ -182,7 +182,7 @@ require("mojo").setup({
 })
 ```
 
-If you want to use another character instead of the fire emoji, set `icon = "󱵮"`. You can also provide any arbitrary string as the icon.
+You can override the icon with any string, e.g. `icon = "󱵮"` for a Nerd Font alternative.
 
 ## Installation
 
@@ -327,11 +327,20 @@ All features are enabled by default. Pass `enabled = false` to disable any featu
     enabled = true,
     auto_scroll = true,
     auto_backend = nil, -- nil = auto, "native", "dap"
+    keymaps = {
+      toggle_breakpoint = "<leader>db",
+      clear_breakpoints = "<leader>dB",
+      start = "<leader>dr",
+      continue = "<leader>dc",
+      step_into = "<leader>ds",
+      step_over = "<leader>dn",
+      step_out = "<leader>do",
+      stop = "<leader>dt",
+    },
     search_for = { -- searched in order; user can extend for custom envs
       { name = "lldb-dap",       role = "dap" },
       { name = "_mojo-lldb-dap", role = "dap" },
       { name = "mojo-lldb-dap",  role = "dap" },
-      { name = "lldb-dap",       role = "dap" },
       { name = "mojo-lldb",      role = "native" },
       { name = "lldb",           role = "native" },
     },
