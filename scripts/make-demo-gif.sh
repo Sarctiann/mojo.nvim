@@ -5,41 +5,47 @@
 # becomes a short animated clip with an overlay description.
 #
 # Usage:
-#   ./scripts/make-demo-gif.sh <directory> [fps] [width]
+#   ./scripts/make-demo-gif.sh <name> [fps] [width]
 #
-#   <directory>  must contain video.mov and specs.txt
-#   fps          frames per second (default: 12)
-#   width        max width in pixels (default: 640)
+#   <name>       output name (required) — produces docs/readme-assets/<name>.gif
+#                and copies specs.txt → docs/readme-assets/<name>.txt
+#   fps          frames per second (default: 4)
+#   width        max width in pixels (default: 800)
+#
+# Looks for a video file (any common format) and specs.txt in the
+# current working directory.
 #
 # Example specs.txt:
 #   00:05|00:09|Code completion
 #   00:12|00:16|Hover documentation
 #
 # Requires: ffmpeg, magick (ImageMagick 7+)
+# Optional: gifsicle
 
 set -euo pipefail
 
-DIR="${1:-}"
+NAME="${1:-}"
 FPS="${2:-4}"
 MAX_WIDTH="${3:-800}"
 
-if [ -z "$DIR" ]; then
-	echo "Usage: $0 <directory> [fps] [width]"
+if [ -z "$NAME" ]; then
+	echo "Usage: $0 <name> [fps] [width]"
+	echo ""
+	echo "  <name>    output name (required)"
+	echo "  fps       frames per second (default: 4)"
+	echo "  width     max width in pixels (default: 800)"
+	echo ""
+	echo "  Auto-detects a video file and specs.txt in the current directory."
+	echo "  Outputs to docs/readme-assets/<name>.gif and copies specs.txt."
 	exit 1
 fi
 
-INPUT="$DIR/video.mov"
-SPECS="$DIR/specs.txt"
-OUTPUT="$DIR/demo.gif"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ASSETS_DIR="$REPO_ROOT/docs/readme-assets"
 
-[ -f "$INPUT" ] || {
-	echo "Error: $INPUT not found"
-	exit 1
-}
-[ -f "$SPECS" ] || {
-	echo "Error: $SPECS not found"
-	exit 1
-}
+SPECS="specs.txt"
+OUTPUT="$ASSETS_DIR/$NAME.gif"
 
 command -v ffmpeg &>/dev/null || {
 	echo "Error: install ffmpeg"
@@ -50,6 +56,72 @@ command -v magick &>/dev/null || {
 	exit 1
 }
 
+# Auto-detect video file in current directory
+VIDEO_EXTS=("mov" "mp4" "mkv" "webm" "avi")
+FOUND_VIDEOS=()
+for ext in "${VIDEO_EXTS[@]}"; do
+	for f in *."$ext"; do
+		[ -f "$f" ] && FOUND_VIDEOS+=("$f")
+	done
+done
+
+if [ "${#FOUND_VIDEOS[@]}" -eq 0 ]; then
+	echo "Error: no video file found in current directory"
+	echo "  Supported formats: ${VIDEO_EXTS[*]}"
+	exit 1
+elif [ "${#FOUND_VIDEOS[@]}" -gt 1 ]; then
+	echo "Error: multiple video files found: ${FOUND_VIDEOS[*]}"
+	echo "  Keep only one video file in the current directory."
+	exit 1
+fi
+INPUT="${FOUND_VIDEOS[0]}"
+echo "Video file: $INPUT"
+
+[ -f "$SPECS" ] || {
+	echo "Error: $SPECS not found in current directory"
+	exit 1
+}
+
+# Cross-platform font detection
+detect_font() {
+	local os
+	os="$(uname -s)"
+
+	case "$os" in
+	Darwin)
+		if [ -f "/System/Library/Fonts/Helvetica.ttc" ]; then
+			echo "/System/Library/Fonts/Helvetica.ttc"
+		else
+			echo "Helvetica"
+		fi
+		;;
+	Linux)
+		if magick -list font 2>/dev/null | grep -qi "DejaVu-Sans"; then
+			echo "DejaVu-Sans"
+		elif magick -list font 2>/dev/null | grep -qi "Liberation-Sans"; then
+			echo "Liberation-Sans"
+		else
+			echo "sans-serif"
+		fi
+		;;
+	MINGW* | MSYS* | CYGWIN*)
+		if magick -list font 2>/dev/null | grep -qi "Arial"; then
+			echo "Arial"
+		else
+			echo "sans-serif"
+		fi
+		;;
+	*)
+		echo "sans-serif"
+		;;
+	esac
+}
+
+FONT=$(detect_font)
+echo "Font: $FONT"
+
+mkdir -p "$ASSETS_DIR"
+
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
@@ -59,7 +131,6 @@ echo "Video duration: ${VIDEO_DUR}s"
 
 TEXT_COLOR="white"
 TEXT_BG="rgba(0,0,0,0.75)"
-FONT="/System/Library/Fonts/Helvetica.ttc"
 
 ALL_FRAMES=()
 
@@ -145,4 +216,6 @@ if command -v gifsicle &>/dev/null; then
 	gifsicle -O1 --colors 192 "$OUTPUT" -o "$OUTPUT"
 fi
 
+cp "$SPECS" "$ASSETS_DIR/$NAME.txt"
+echo "Copied specs → $ASSETS_DIR/$NAME.txt"
 echo "Done! GIF saved to: $OUTPUT"

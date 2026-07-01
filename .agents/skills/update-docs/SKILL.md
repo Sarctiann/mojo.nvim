@@ -60,7 +60,7 @@ confirm correctness.
 - [ ] keymaps documented match actual keymaps
 - [ ] installation instructions still work (check lazy.nvim, packer, etc. snippets)
 - [ ] setup example still accurate against current `config.lua` defaults
-- [ ] `docs/demo.gif` exists; if not, suggest creating one (see `scripts/make-demo-gif.sh`)
+- [ ] `docs/readme-assets/` directory exists with at least one `.gif` file; if empty or missing, suggest creating a demo (see `scripts/make-demo-gif.sh`). Check `docs/readme-assets/*.txt` files to know which features are already covered — each `.txt` is a copy of the `specs.txt` used to generate the corresponding GIF, listing every feature segment included.
 - [ ] links anchor to existing sections (`#` references are valid)
 - [ ] statusline component names match `lua/mojo/status.lua`
 
@@ -176,13 +176,13 @@ After all fixes and consistency checks, present a summary to the user:
 
 ### Remaining suggestions
 - README is 340 lines — consider splitting into docs/features.md
-- Only 1 demo GIF — a second GIF showing debugging workflow would improve onboarding
+- Only 1 demo GIF — a second GIF showing debugging workflow would improve onboarding (check `docs/readme-assets/*.txt` to see which features are already covered)
 - Spec 2026-06-06-tool-support-readme-restructure has diverged from implementation (see divergence note)
 ```
 
 For suggestions, assess:
 - README length and readability — would splitting help?
-- How many static images/GIFs exist vs. what's shown (1 GIF currently)
+- How many GIFs exist in `docs/readme-assets/` vs. what's shown in README. Check `docs/readme-assets/*.txt` files — each records the feature segments covered by its corresponding GIF. Cross-reference with the README feature list to identify missing visual coverage.
 - Is there a feature that lacks any visual demonstration?
 - Would a quick reference table or badge section add value?
 - Any missing sections (FAQ, troubleshooting, comparison with VS Code)?
