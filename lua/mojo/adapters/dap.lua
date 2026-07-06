@@ -39,6 +39,25 @@ local function ensure_macos_executable(bin)
 	end
 end
 
+local function find_package_root(bin_dir)
+	local venv_root = vim.fs.dirname(bin_dir)
+	local lib_dir = vim.fs.joinpath(venv_root, "lib")
+	local stat = vim.uv.fs_stat(lib_dir)
+	if not stat or stat.type ~= "directory" then
+		return nil
+	end
+	for name, entry_type in vim.fs.dir(lib_dir) do
+		if entry_type == "directory" and name:match("^python3%.") then
+			local candidate = vim.fs.joinpath(lib_dir, name, "site-packages", "modular")
+			local cand_stat = vim.uv.fs_stat(candidate)
+			if cand_stat and cand_stat.type == "directory" then
+				return candidate
+			end
+		end
+	end
+	return nil
+end
+
 local function ensure_gitignore()
 	if gitignore_notified then
 		return
@@ -127,11 +146,39 @@ function M.setup(opts)
 		end
 		ensure_macos_executable(cmd[1])
 		local adapter_env = {}
+		local detect = require("mojo.env.detect")
+		local detected = detect.detect()
+		local command = cmd[1]
+		local args = nil --- @type string[]|nil
+		if detected and detected.type == "venv" and detected.bin_dir then
+			local pkg_root = find_package_root(detected.bin_dir)
+			if pkg_root then
+				local pkg_lib = vim.fs.joinpath(pkg_root, "lib")
+				local ext = vim.fn.has("mac") == 1 and "dylib" or "so"
+				local plugin = vim.fs.joinpath(pkg_lib, "libMojoLLDB." .. ext)
+				local visualizers = vim.fs.joinpath(pkg_lib, "lldb-visualizers")
+				adapter_env.MODULAR_MOJO_MAX_LLDB_PLUGIN_PATH = plugin
+				adapter_env.MODULAR_MOJO_MAX_LLDB_VISUALIZERS_PATH = visualizers
+				local native_bin = vim.fs.joinpath(pkg_root, "bin", "lldb-dap")
+				if vim.uv.fs_stat(native_bin) then
+					ensure_macos_executable(native_bin)
+					command = native_bin
+					args = {
+						"--pre-init-command",
+						"?!plugin load " .. plugin,
+						"--pre-init-command",
+						"?command script import " .. vim.fs.joinpath(visualizers, "lldbDataFormatters.py"),
+						"--pre-init-command",
+						"?command script import " .. vim.fs.joinpath(visualizers, "mlirDataFormatters.py"),
+					}
+				end
+			end
+		end
 		if env_dir then
-			local detect = require("mojo.env.detect")
-			local detected = detect.detect()
-			adapter_env.CONDA_PREFIX = env_dir
-			adapter_env.MODULAR_HOME = vim.fs.joinpath(env_dir, "share", "max")
+			if detected and detected.type == "pixi" then
+				adapter_env.CONDA_PREFIX = env_dir
+				adapter_env.MODULAR_HOME = vim.fs.joinpath(env_dir, "share", "max")
+			end
 			if detected and detected.bin_dir then
 				adapter_env.PATH = detected.bin_dir .. ":" .. (vim.env.PATH or "")
 			end
@@ -145,7 +192,8 @@ function M.setup(opts)
 		end
 		callback({
 			type = "executable",
-			command = cmd[1],
+			command = command,
+			args = args,
 			options = {
 				env = adapter_env,
 			},

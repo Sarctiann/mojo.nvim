@@ -51,7 +51,7 @@
 | `buildArgs` in debug config        | ❌     | Build args not exposed in launch config                                                                                     |
 | Attach to process                  | ✅     | Via `dap.configurations.mojo` `Attach to Process` entry                                                                     |
 | `mojo debug --vscode` support      | 🟡     | DAP + native `mojo-lldb <bin>` cover the case                                                                               |
-| Mojo data formatters (visualizers) | ❌     | `lldbDataFormatters.py` + `mlirDataFormatters.py` not loaded by our adapter                                                 |
+| Mojo data formatters (visualizers) | 🟡     | Loaded via `--pre-init-command` in DAP adapter (lldbDataFormatters.py + mlirDataFormatters.py); import fails on bundled LLDB Python interpreter |
 | LLDB init/pre-run/post-run cmds    | 🟡     | Source-map set via `initCommands`; pre/post commands not exposed                                                            |
 | Editor → LLDB breakpoint sync      | 🟡     | Reads from nvim-dap breakpoint API (or `MojoBreakpoint` fallback); incremental sync + LLDB ID tracking pending   |
 

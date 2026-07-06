@@ -65,14 +65,68 @@ function M._start_dap()
 	local cwd = vim.fn.getcwd()
 	local env_vars = {}
 	local detected = require("mojo.env.detect").detect()
-	if detected and detected.env_dir then
-		env_vars.CONDA_PREFIX = detected.env_dir
-		local lib = vim.fs.joinpath(detected.env_dir, "lib")
-		local swift = vim.fs.joinpath(lib, "swift")
-		if vim.fn.has("mac") == 1 then
-			env_vars.DYLD_FALLBACK_LIBRARY_PATH = lib .. ":" .. swift
-		else
-			env_vars.LD_LIBRARY_PATH = lib .. ":" .. swift
+	if detected then
+		if detected.env_dir then
+			env_vars.CONDA_PREFIX = detected.env_dir
+			local lib = vim.fs.joinpath(detected.env_dir, "lib")
+			local swift = vim.fs.joinpath(lib, "swift")
+			if vim.fn.has("mac") == 1 then
+				env_vars.DYLD_FALLBACK_LIBRARY_PATH = lib .. ":" .. swift
+			else
+				env_vars.LD_LIBRARY_PATH = lib .. ":" .. swift
+			end
+		end
+		if detected.type == "venv" and detected.env_dir and detected.bin_dir then
+			local pyvenv_cfg = vim.fs.joinpath(detected.env_dir, "pyvenv.cfg")
+			local f = io.open(pyvenv_cfg, "r")
+			if f then
+				local python_home = nil
+				local python_ver_major = "3"
+				local python_ver_minor = "13"
+				for line in f:lines() do
+					local key, value = line:match("^(%S+)%s*=%s*(.+)$")
+					if key == "home" then
+						python_home = vim.fs.dirname(value)
+					elseif key == "version_info" then
+						local major, minor = value:match("^(%d+)%.(%d+)")
+						if major then
+							python_ver_major = major
+						end
+						if minor then
+							python_ver_minor = minor
+						end
+					end
+				end
+				f:close()
+				if python_home then
+					env_vars.PYTHONHOME = python_home
+					local python_bin = vim.fs.joinpath(detected.bin_dir, "python3")
+					if vim.uv.fs_stat(python_bin) then
+						env_vars.MOJO_PYTHON = python_bin
+					end
+					local python_lib_dir = vim.fs.joinpath(python_home, "lib")
+					local ext = vim.fn.has("mac") == 1 and "dylib" or "so"
+					local libpython = vim.fs.joinpath(
+						python_lib_dir,
+						"libpython" .. python_ver_major .. python_ver_minor .. "." .. ext
+					)
+					if vim.uv.fs_stat(libpython) then
+						env_vars.MOJO_PYTHON_LIBRARY = libpython
+					end
+					local existing = env_vars.DYLD_FALLBACK_LIBRARY_PATH
+						or env_vars.LD_LIBRARY_PATH
+						or ""
+					local lib_path = python_lib_dir
+					if existing ~= "" then
+						lib_path = existing .. ":" .. lib_path
+					end
+					if vim.fn.has("mac") == 1 then
+						env_vars.DYLD_FALLBACK_LIBRARY_PATH = lib_path
+					else
+						env_vars.LD_LIBRARY_PATH = lib_path
+					end
+				end
+			end
 		end
 	end
 
@@ -92,7 +146,8 @@ function M._start_dap()
 		name = "Debug Mojo File",
 		program = bin,
 		cwd = cwd,
-		stopOnEntry = true,
+		stopOnEntry = false,
+		initCommands = init,
 	})
 	if not ok_run then
 		active_backend = nil
