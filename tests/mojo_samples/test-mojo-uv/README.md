@@ -51,31 +51,14 @@ See the [debugger testing guide](../../../docs/testing-debugger.md) for the full
 step-by-step manual test procedure covering both native (`dbg_ntv`) and DAP
 (`dbg_dap`) backends.
 
-> **macOS**: The mojo binary installed via uv/PyPI lacks debugger entitlements.
-> mojo.nvim automatically handles quarantine removal and re-signing for DAP debug
-> (`:MojoDebugDap`). For native debug (`:MojoDebugNative`), if you see
-> `Not allowed to attach to process`, re-sign the mojo binary:
->
-> ```bash
-> # Create entitlements plist
-> cat > /tmp/debug.plist << 'EOF'
-> <?xml version="1.0" encoding="UTF-8"?>
-> <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-> <plist version="1.0"><dict><key>com.apple.security.get-task-allow</key><true/></dict></plist>
-> EOF
->
-> # Re-sign the mojo binary
-> codesign --force --sign - --entitlements /tmp/debug.plist $(which mojo)
-> ```
->
-> Pixi-installed mojo does not have this issue. Consider using the pixi project
-> (`tests/mojo_samples/test-mojo-pixi/`) for the full debugger experience.
+mojo.nvim automatically handles macOS quarantine removal and code-signing.
+Native and DAP debugging work out of the box on both macOS and Linux.
 
 Quick start:
 
 ```bash
 source .venv/bin/activate
 nvim main.mojo
-:Mojo debug-native   " native LLDB terminal (may need manual re-sign on macOS)
+:Mojo debug-native   " native LLDB terminal
 :Mojo debug-dap      " nvim-dap + lldb-dap (automatic macOS signing)
 ```

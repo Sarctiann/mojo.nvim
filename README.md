@@ -97,7 +97,7 @@ Native debug (`:MojoDebugNative`) opens a terminal with LLDB keymaps: `r` (run),
 
 DAP debug (`:MojoDebugDap`) requires [nvim-dap](https://github.com/mfussenegger/nvim-dap) and provides four launch configurations: Debug Mojo File, Debug Mojo File (with args), Debug Binary, and Attach to Process.
 
-**macOS note:** The plugin automatically removes quarantine and re-signs debug adapter binaries (`mojo-lldb-dap` / `lldb-dap`) on macOS. Native debug (`:MojoDebugNative`) may still require manual re-signing of the `mojo` binary itself on uv-installed projects (see `docs/testing-debugger.md`).
+**macOS note:** The plugin automatically removes quarantine and re-signs debug adapter binaries (`mojo-lldb-dap` / `lldb-dap`) on macOS. Both native and DAP debugging work on macOS with pixi and uv projects.
 
 ### Indentation
 
@@ -374,7 +374,7 @@ Each adapter can be replaced via its feature's `adapter` config field for custom
 ## Notes
 
 - The plugin does not ship the Mojo LSP binary or official toolchain
-- Debugging is enabled by default; both native and DAP backends degrade gracefully when binaries not found. On macOS with uv-installed Mojo, native debugging may require manual re-signing of the `mojo` binary; DAP debugging handles macOS code-signing automatically (see `docs/testing-debugger.md`)
+- Debugging is enabled by default; both native and DAP backends degrade gracefully when binaries not found. On macOS, the plugin automatically handles quarantine and code-signing for debug adapter binaries
 - When `verbose = true`, logs are written to `mojo-debug.log` in the current working directory
 - The plugin auto-activates Pixi or venv project environments before Mojo LSP startup and in terminal buffers
 - Treesitter is isolated behind `lua/mojo/treesitter.lua`. The parser grammar is self-hosted in `tree-sitter/mojo/`. The plugin auto-rebuilds the parser when the grammar source changes; `:MojoRebuildParser` is available for manual rebuilds

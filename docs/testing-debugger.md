@@ -238,12 +238,12 @@ Same steps as the pixi DAP flow above. Same macOS entitlement caveat applies.
 
 ## Test Matrix
 
-| Project | Backend | Command              | macOS entitlement? |
+| Project | Backend | Command              | macOS handling     |
 | ------- | ------- | -------------------- | ------------------ |
 | pixi    | native  | `:Mojo debug-native` | Built-in           |
 | pixi    | dap     | `:Mojo debug-dap`    | Built-in           |
-| uv      | native  | `:Mojo debug-native` | Needs re-sign      |
-| uv      | dap     | `:Mojo debug-dap`    | Needs re-sign      |
+| uv      | native  | `:Mojo debug-native` | Automatic signing  |
+| uv      | dap     | `:Mojo debug-dap`    | Automatic signing  |
 
 ---
 
@@ -259,8 +259,9 @@ Activate the correct environment before launching Neovim:
 ### Debug binary not found
 
 - **pixi**: `mojo-lldb` and `mojo-lldb-dap` are included.
-- **uv**: `mojo-lldb` and `lldb-dap` may not be included. Use pixi for full debug
-  or fall back to `:Mojo debug` (terminal `mojo debug`).
+- **uv**: The plugin requires `lldb-dap` or `mojo-lldb-dap` in the venv. uv-installed
+  Mojo includes `lldb-dap`. If the binary is missing, reinstall the mojo package:
+  `uv add mojo --prerelease allow`.
 
 Binary names are configurable via `debug.search_for` in the plugin config
 (default: `lldb-dap`, `_mojo-lldb-dap`, `mojo-lldb-dap`, `mojo-lldb`, `lldb`).
