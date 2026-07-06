@@ -10,8 +10,8 @@ parser.dylib
 tree-sitter/**/*.so
 tree-sitter/**/*.dylib
 *.log
-/posts/
-/plans/
+posts/
+plans/
 .pixi/
 _mojo-debug/
 .venv/
