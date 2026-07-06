@@ -52,7 +52,9 @@ step-by-step manual test procedure covering both native (`dbg_ntv`) and DAP
 (`dbg_dap`) backends.
 
 > **macOS**: The mojo binary installed via uv/PyPI lacks debugger entitlements.
-> If you see `Not allowed to attach to process`, re-sign the binary:
+> mojo.nvim automatically handles quarantine removal and re-signing for DAP debug
+> (`:MojoDebugDap`). For native debug (`:MojoDebugNative`), if you see
+> `Not allowed to attach to process`, re-sign the mojo binary:
 >
 > ```bash
 > # Create entitlements plist
@@ -74,6 +76,6 @@ Quick start:
 ```bash
 source .venv/bin/activate
 nvim main.mojo
-:Mojo debug-native   " native LLDB terminal (may need re-sign on macOS)
-:Mojo debug-dap      " nvim-dap + lldb-dap (may need re-sign on macOS)
+:Mojo debug-native   " native LLDB terminal (may need manual re-sign on macOS)
+:Mojo debug-dap      " nvim-dap + lldb-dap (automatic macOS signing)
 ```

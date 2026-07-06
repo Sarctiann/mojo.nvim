@@ -26,6 +26,19 @@ local function sign_for_debug(bin)
 	os.remove(tmp)
 end
 
+local function ensure_macos_executable(bin)
+	if vim.fn.has("mac") ~= 1 then
+		return
+	end
+	if not bin or bin:sub(1, 1) ~= "/" then
+		return
+	end
+	vim.fn.system({ "xattr", "-d", "com.apple.quarantine", bin })
+	if vim.fn.executable("codesign") == 1 then
+		vim.fn.system({ "codesign", "--force", "--sign", "-", bin })
+	end
+end
+
 local function ensure_gitignore()
 	if gitignore_notified then
 		return
@@ -112,6 +125,7 @@ function M.setup(opts)
 			callback(nil)
 			return
 		end
+		ensure_macos_executable(cmd[1])
 		local adapter_env = {}
 		if env_dir then
 			local detect = require("mojo.env.detect")
