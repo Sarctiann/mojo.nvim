@@ -6,7 +6,7 @@ community channels.
 ## Format
 
 ```
-🔥 **[mojo.nvim](<repo link>) update**
+# 🔥 **[mojo.nvim](<repo link>) update**
 
 <1-2 sentences about what triggered this update>
 
@@ -40,7 +40,7 @@ Each feature line has one of two formats:
 ## Example
 
 ```markdown
-🔥 **[mojo.nvim](https://github.com/Sarctiann/mojo.nvim) update**
+# 🔥 **[mojo.nvim](https://github.com/Sarctiann/mojo.nvim) update**
 
 We audited the latest `vscode-mojo` v26.6.0 against mojo.nvim and the gap is narrowing fast.
 
