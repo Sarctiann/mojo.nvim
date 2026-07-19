@@ -128,6 +128,12 @@ for _, filepath in ipairs(mojo_files) do
     check("(decorator (identifier) @attribute)", 1, "decorator")
     check("(struct_header name: (identifier) @type)", 1, "struct_header")
     check("(trait_header name: (identifier) @type.definition)", 1, "trait_header")
+    check([[
+      ((struct_declaration
+         body: (block (function_declaration (function_signature
+           name: (identifier) @constructor))))
+       (#eq? @constructor "__init__"))
+    ]], 1, "struct constructor")
   end
 
   vim.api.nvim_buf_delete(buf, {force = true})

@@ -106,9 +106,12 @@ def transfer_example():
 __extension List:
     pass
 
-# --- 13. Typed self (Self) ---
+# --- 13. Typed self (Self) and constructor ---
 
 struct Buffer:
+    def __init__(out self):                 # "__init__" @constructor
+        pass
+
     def clone(self: Self) -> Self:
         return self
 
