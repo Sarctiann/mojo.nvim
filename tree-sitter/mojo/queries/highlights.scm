@@ -560,7 +560,7 @@
   (struct_declaration
     body: (block[
       (function_declaration (function_signature
-        name: (identifier) @function.method))
+        name: (identifier) @constructor))
       (decorated_declaration
         declaration: (function_declaration
           (function_signature
