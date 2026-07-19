@@ -1,25 +1,15 @@
-(class_definition
+(module (expression_statement (assignment left: (identifier) @name) @definition.constant))
+
+(struct_header
   name: (identifier) @name) @definition.class
 
-(trait_definition
-  name: (identifier) @name) @definition.interface
-
-(function_definition
+(function_signature
   name: (identifier) @name) @definition.function
 
-(type_alias_statement
-  left: (type (identifier) @name)) @definition.constant
-
-(parameterized_alias_statement
-  name: (identifier) @name) @definition.constant
-
-(assignment
-  "var"
-  left: (pattern (identifier) @name)) @definition.variable
-
 (call
-  function: [
-    (identifier) @name
-    (attribute
-      attribute: (identifier) @name)
-  ]) @reference.call
+  function: (identifier) @name
+) @reference.call
+
+(member_call
+  function: (identifier) @name
+) @reference.call

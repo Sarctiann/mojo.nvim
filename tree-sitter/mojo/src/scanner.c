@@ -10,32 +10,31 @@ enum TokenType {
     NEWLINE,
     INDENT,
     DEDENT,
+    MLIR_ATTR_PREFIX,
+    MLIR_ATTR_SPECIAL_CHARACTER,
+    MLIR_OPERATOR,
+    MLIR_TYPE_PREFIX,
+    MLIR_TYPE_SPECIAL_CHARACTER,
     STRING_START,
     STRING_CONTENT,
     ESCAPE_INTERPOLATION,
     STRING_END,
+    ESCAPED_IDENTIFIER_CONTENT,
     COMMENT,
-    CLOSE_PAREN,
     CLOSE_BRACKET,
+    CLOSE_PAREN,
     CLOSE_BRACE,
     EXCEPT,
-    // MLIR backtick-fragment interior tokens. Emitted only inside ``…`` MLIR
-    // fragments (where comment/string lexing is suppressed) so the interior is
-    // tokenized into highlightable pieces.
-    MLIR_BACKTICK,
-    MLIR_IDENT,
-    MLIR_NUMBER,
-    MLIR_PUNCTUATION,
+    ERROR_SENTINEL,
 };
 
 typedef enum {
     SingleQuote = 1 << 0,
     DoubleQuote = 1 << 1,
-    BackQuote = 1 << 2,
-    Raw = 1 << 3,
-    Format = 1 << 4,
-    Triple = 1 << 5,
-    Bytes = 1 << 6,
+    Raw = 1 << 2,
+    Format = 1 << 3,
+    Triple = 1 << 4,
+    Bytes = 1 << 5,
 } Flags;
 
 typedef struct {
@@ -44,13 +43,21 @@ typedef struct {
 
 static inline Delimiter new_delimiter() { return (Delimiter){0}; }
 
-static inline bool is_format(Delimiter *delimiter) { return delimiter->flags & Format; }
+static inline bool is_format(Delimiter *delimiter) {
+    return delimiter->flags & Format;
+}
 
-static inline bool is_raw(Delimiter *delimiter) { return delimiter->flags & Raw; }
+static inline bool is_raw(Delimiter *delimiter) {
+    return delimiter->flags & Raw;
+}
 
-static inline bool is_triple(Delimiter *delimiter) { return delimiter->flags & Triple; }
+static inline bool is_triple(Delimiter *delimiter) {
+    return delimiter->flags & Triple;
+}
 
-static inline bool is_bytes(Delimiter *delimiter) { return delimiter->flags & Bytes; }
+static inline bool is_bytes(Delimiter *delimiter) {
+    return delimiter->flags & Bytes;
+}
 
 static inline int32_t end_character(Delimiter *delimiter) {
     if (delimiter->flags & SingleQuote) {
@@ -59,33 +66,33 @@ static inline int32_t end_character(Delimiter *delimiter) {
     if (delimiter->flags & DoubleQuote) {
         return '"';
     }
-    if (delimiter->flags & BackQuote) {
-        return '`';
-    }
     return 0;
 }
 
-static inline void set_format(Delimiter *delimiter) { delimiter->flags |= Format; }
+static inline void set_format(Delimiter *delimiter) {
+    delimiter->flags |= Format;
+}
 
 static inline void set_raw(Delimiter *delimiter) { delimiter->flags |= Raw; }
 
-static inline void set_triple(Delimiter *delimiter) { delimiter->flags |= Triple; }
+static inline void set_triple(Delimiter *delimiter) {
+    delimiter->flags |= Triple;
+}
 
-static inline void set_bytes(Delimiter *delimiter) { delimiter->flags |= Bytes; }
+static inline void set_bytes(Delimiter *delimiter) {
+    delimiter->flags |= Bytes;
+}
 
 static inline void set_end_character(Delimiter *delimiter, int32_t character) {
     switch (character) {
-        case '\'':
-            delimiter->flags |= SingleQuote;
-            break;
-        case '"':
-            delimiter->flags |= DoubleQuote;
-            break;
-        case '`':
-            delimiter->flags |= BackQuote;
-            break;
-        default:
-            assert(false);
+    case '\'':
+        delimiter->flags |= SingleQuote;
+        break;
+    case '"':
+        delimiter->flags |= DoubleQuote;
+        break;
+    default:
+        assert(false);
     }
 }
 
@@ -99,76 +106,116 @@ static inline void advance(TSLexer *lexer) { lexer->advance(lexer, false); }
 
 static inline void skip(TSLexer *lexer) { lexer->advance(lexer, true); }
 
-bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const bool *valid_symbols) {
+bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer,
+                                            const bool *valid_symbols) {
     Scanner *scanner = (Scanner *)payload;
 
-    bool error_recovery_mode = valid_symbols[STRING_CONTENT] && valid_symbols[INDENT];
-    bool within_brackets = valid_symbols[CLOSE_BRACE] || valid_symbols[CLOSE_PAREN] || valid_symbols[CLOSE_BRACKET];
+    bool error_recovery_mode = valid_symbols[ERROR_SENTINEL];
+    bool within_brackets = valid_symbols[CLOSE_BRACE] ||
+                           valid_symbols[CLOSE_PAREN] ||
+                           valid_symbols[CLOSE_BRACKET];
+    bool mlir_context = valid_symbols[MLIR_ATTR_PREFIX] ||
+                        valid_symbols[MLIR_ATTR_SPECIAL_CHARACTER] ||
+                        valid_symbols[MLIR_OPERATOR] ||
+                        valid_symbols[MLIR_TYPE_PREFIX] ||
+                        valid_symbols[MLIR_TYPE_SPECIAL_CHARACTER];
 
-    // MLIR backtick-fragment tokenization. Inside ``__mlir_op.`...` `` and the
-    // like, the interior is lexed into typed/number/punctuation pieces so it can
-    // be highlighted as MLIR. Comment and string lexing are suppressed here by
-    // handling the characters directly and returning before that logic runs.
-    bool mlir_interior = valid_symbols[MLIR_IDENT] || valid_symbols[MLIR_NUMBER] ||
-                         valid_symbols[MLIR_PUNCTUATION];
-    if (!error_recovery_mode && (mlir_interior || valid_symbols[MLIR_BACKTICK])) {
-        if (mlir_interior) {
-            // Skip insignificant whitespace between fragment pieces.
-            while (lexer->lookahead == ' ' || lexer->lookahead == '\t') {
-                skip(lexer);
-            }
+    if (mlir_context && !error_recovery_mode) {
+        if (lexer->lookahead == '`') {
+            return false;
         }
-        int32_t c = lexer->lookahead;
-        if (c == '`' && valid_symbols[MLIR_BACKTICK]) {
+
+        if (valid_symbols[MLIR_ATTR_PREFIX] && lexer->lookahead == '#') {
             advance(lexer);
             lexer->mark_end(lexer);
-            lexer->result_symbol = MLIR_BACKTICK;
+            lexer->result_symbol = MLIR_ATTR_PREFIX;
             return true;
         }
-        if (mlir_interior) {
-            if (c == '_' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
-                while (true) {
-                    int32_t d = lexer->lookahead;
-                    if (d == '_' || (d >= 'A' && d <= 'Z') || (d >= 'a' && d <= 'z') ||
-                        (d >= '0' && d <= '9')) {
-                        advance(lexer);
-                    } else {
-                        break;
-                    }
-                }
+
+        if (valid_symbols[MLIR_ATTR_SPECIAL_CHARACTER]) {
+            switch (lexer->lookahead) {
+            case '{':
+            case '}':
+                advance(lexer);
                 lexer->mark_end(lexer);
-                lexer->result_symbol = MLIR_IDENT;
+                lexer->result_symbol = MLIR_ATTR_SPECIAL_CHARACTER;
                 return true;
             }
-            if (c >= '0' && c <= '9') {
-                while (lexer->lookahead >= '0' && lexer->lookahead <= '9') {
+        }
+
+        if (valid_symbols[MLIR_OPERATOR]) {
+            int32_t first = lexer->lookahead;
+            switch (first) {
+            case '-':
+            case '=':
+                advance(lexer);
+                if (first == '-' && lexer->lookahead == '>') {
                     advance(lexer);
                 }
                 lexer->mark_end(lexer);
-                lexer->result_symbol = MLIR_NUMBER;
-                return true;
-            }
-            if (c != 0 && c != '`' && c != '\n' && c != '\r') {
-                // A single punctuation/other character.
-                advance(lexer);
-                lexer->mark_end(lexer);
-                lexer->result_symbol = MLIR_PUNCTUATION;
+                lexer->result_symbol = MLIR_OPERATOR;
                 return true;
             }
         }
+
+        if (valid_symbols[MLIR_TYPE_PREFIX] && lexer->lookahead == '!') {
+            advance(lexer);
+            lexer->mark_end(lexer);
+            lexer->result_symbol = MLIR_TYPE_PREFIX;
+            return true;
+        }
+
+        if (valid_symbols[MLIR_TYPE_SPECIAL_CHARACTER]) {
+            switch (lexer->lookahead) {
+            case ',':
+            case ':':
+            case '<':
+            case '>':
+            case '[':
+            case ']':
+            case '(':
+            case ')':
+                advance(lexer);
+                lexer->mark_end(lexer);
+                lexer->result_symbol = MLIR_TYPE_SPECIAL_CHARACTER;
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    if (valid_symbols[ESCAPED_IDENTIFIER_CONTENT] && !error_recovery_mode) {
+        bool has_content = false;
+        while (lexer->lookahead != '`' && !lexer->eof(lexer)) {
+            switch (lexer->lookahead) {
+            case '\n':
+            case '\v':
+                return false;
+            }
+            advance(lexer);
+            has_content = true;
+        }
+
+        if (has_content) {
+            lexer->mark_end(lexer);
+            lexer->result_symbol = ESCAPED_IDENTIFIER_CONTENT;
+        }
+        return has_content;
     }
 
     bool advanced_once = false;
     if (valid_symbols[ESCAPE_INTERPOLATION] && scanner->delimiters.size > 0 &&
-        (lexer->lookahead == '{' || lexer->lookahead == '}') && !error_recovery_mode) {
+        (lexer->lookahead == '{' || lexer->lookahead == '}') &&
+        !error_recovery_mode) {
         Delimiter *delimiter = array_back(&scanner->delimiters);
         if (is_format(delimiter)) {
             lexer->mark_end(lexer);
             bool is_left_brace = lexer->lookahead == '{';
             advance(lexer);
             advanced_once = true;
-            if ((lexer->lookahead == '{' && is_left_brace) || (lexer->lookahead == '}' && !is_left_brace)) {
+            if ((lexer->lookahead == '{' && is_left_brace) ||
+                (lexer->lookahead == '}' && !is_left_brace)) {
                 advance(lexer);
                 lexer->mark_end(lexer);
                 lexer->result_symbol = ESCAPE_INTERPOLATION;
@@ -178,12 +225,15 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
         }
     }
 
-    if (valid_symbols[STRING_CONTENT] && scanner->delimiters.size > 0 && !error_recovery_mode) {
+    if (valid_symbols[STRING_CONTENT] && scanner->delimiters.size > 0 &&
+        !error_recovery_mode) {
         Delimiter *delimiter = array_back(&scanner->delimiters);
         int32_t end_char = end_character(delimiter);
         bool has_content = advanced_once;
         while (lexer->lookahead) {
-            if ((advanced_once || lexer->lookahead == '{' || lexer->lookahead == '}') && is_format(delimiter)) {
+            if ((advanced_once || lexer->lookahead == '{' ||
+                 lexer->lookahead == '}') &&
+                is_format(delimiter)) {
                 lexer->mark_end(lexer);
                 lexer->result_symbol = STRING_CONTENT;
                 return has_content;
@@ -193,7 +243,8 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
                     // Step over the backslash.
                     advance(lexer);
                     // Step over any escaped quotes.
-                    if (lexer->lookahead == end_character(delimiter) || lexer->lookahead == '\\') {
+                    if (lexer->lookahead == end_character(delimiter) ||
+                        lexer->lookahead == '\\') {
                         advance(lexer);
                     }
                     // Step over newlines
@@ -210,10 +261,11 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
                 if (is_bytes(delimiter)) {
                     lexer->mark_end(lexer);
                     advance(lexer);
-                    if (lexer->lookahead == 'N' || lexer->lookahead == 'u' || lexer->lookahead == 'U') {
+                    if (lexer->lookahead == 'N' || lexer->lookahead == 'u' ||
+                        lexer->lookahead == 'U') {
                         // In bytes string, \N{...}, \uXXXX and \UXXXXXXXX are
                         // not escape sequences
-                        // https://docs.mojo.org/3/reference/lexical_analysis.html#string-and-bytes-literals
+                        // https://docs.python.org/3/reference/lexical_analysis.html#string-and-bytes-literals
                         advance(lexer);
                     } else {
                         lexer->result_symbol = STRING_CONTENT;
@@ -261,7 +313,8 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
                 lexer->mark_end(lexer);
                 return true;
 
-            } else if (lexer->lookahead == '\n' && has_content && !is_triple(delimiter)) {
+            } else if (lexer->lookahead == '\n' && has_content &&
+                       !is_triple(delimiter)) {
                 return false;
             }
             advance(lexer);
@@ -288,8 +341,9 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
         } else if (lexer->lookahead == '\t') {
             indent_length += 8;
             skip(lexer);
-        } else if (lexer->lookahead == '#' && (valid_symbols[INDENT] || valid_symbols[DEDENT] ||
-                                               valid_symbols[NEWLINE] || valid_symbols[EXCEPT])) {
+        } else if (lexer->lookahead == '#' &&
+                   (valid_symbols[INDENT] || valid_symbols[DEDENT] ||
+                    valid_symbols[NEWLINE] || valid_symbols[EXCEPT])) {
             // If we haven't found an EOL yet,
             // then this is a comment after an expression:
             //   foo = bar # comment
@@ -329,19 +383,22 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
         if (scanner->indents.size > 0) {
             uint16_t current_indent_length = *array_back(&scanner->indents);
 
-            if (valid_symbols[INDENT] && indent_length > current_indent_length) {
+            if (valid_symbols[INDENT] &&
+                indent_length > current_indent_length) {
                 array_push(&scanner->indents, indent_length);
                 lexer->result_symbol = INDENT;
                 return true;
             }
 
             bool next_tok_is_string_start =
-                lexer->lookahead == '\"' || lexer->lookahead == '\'' || lexer->lookahead == '`';
+                lexer->lookahead == '\'' || lexer->lookahead == '\"';
 
             if ((valid_symbols[DEDENT] ||
-                 (!valid_symbols[NEWLINE] && !(valid_symbols[STRING_START] && next_tok_is_string_start) &&
+                 (!valid_symbols[NEWLINE] &&
+                  !(valid_symbols[STRING_START] && next_tok_is_string_start) &&
                   !within_brackets)) &&
-                indent_length < current_indent_length && !scanner->inside_interpolated_string &&
+                indent_length < current_indent_length &&
+                !scanner->inside_interpolated_string &&
 
                 // Wait to create a dedent token until we've consumed any
                 // comments
@@ -364,25 +421,21 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
 
         bool has_flags = false;
         while (lexer->lookahead) {
-            if (lexer->lookahead == 'f' || lexer->lookahead == 'F' || lexer->lookahead == 't' ||
-                lexer->lookahead == 'T') {
+            int32_t next = lexer->lookahead;
+            if (next == 'f' || next == 'F' || next == 't' || next == 'T') {
                 set_format(&delimiter);
-            } else if (lexer->lookahead == 'r' || lexer->lookahead == 'R') {
+            } else if (next == 'r' || next == 'R') {
                 set_raw(&delimiter);
-            } else if (lexer->lookahead == 'b' || lexer->lookahead == 'B') {
+            } else if (next == 'b' || next == 'B') {
                 set_bytes(&delimiter);
-            } else if (lexer->lookahead != 'u' && lexer->lookahead != 'U') {
+            } else if (next != 'u' && next != 'U') {
                 break;
             }
             has_flags = true;
             advance(lexer);
         }
 
-        if (lexer->lookahead == '`') {
-            set_end_character(&delimiter, '`');
-            advance(lexer);
-            lexer->mark_end(lexer);
-        } else if (lexer->lookahead == '\'') {
+        if (lexer->lookahead == '\'') {
             set_end_character(&delimiter, '\'');
             advance(lexer);
             lexer->mark_end(lexer);
@@ -422,7 +475,8 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer, const
     return false;
 }
 
-unsigned tree_sitter_mojo_external_scanner_serialize(void *payload, char *buffer) {
+unsigned tree_sitter_mojo_external_scanner_serialize(void *payload,
+                                                     char *buffer) {
     Scanner *scanner = (Scanner *)payload;
 
     size_t size = 0;
@@ -441,7 +495,9 @@ unsigned tree_sitter_mojo_external_scanner_serialize(void *payload, char *buffer
     size += delimiter_count;
 
     uint32_t iter = 1;
-    for (; iter < scanner->indents.size && size < TREE_SITTER_SERIALIZATION_BUFFER_SIZE; ++iter) {
+    for (; iter < scanner->indents.size &&
+           size < TREE_SITTER_SERIALIZATION_BUFFER_SIZE;
+         ++iter) {
         uint16_t indent_value = *array_get(&scanner->indents, iter);
         buffer[size++] = (char)(indent_value & 0xFF);
         buffer[size++] = (char)((indent_value >> 8) & 0xFF);
@@ -450,7 +506,9 @@ unsigned tree_sitter_mojo_external_scanner_serialize(void *payload, char *buffer
     return size;
 }
 
-void tree_sitter_mojo_external_scanner_deserialize(void *payload, const char *buffer, unsigned length) {
+void tree_sitter_mojo_external_scanner_deserialize(void *payload,
+                                                   const char *buffer,
+                                                   unsigned length) {
     Scanner *scanner = (Scanner *)payload;
 
     array_delete(&scanner->delimiters);
@@ -466,12 +524,14 @@ void tree_sitter_mojo_external_scanner_deserialize(void *payload, const char *bu
         if (delimiter_count > 0) {
             array_reserve(&scanner->delimiters, delimiter_count);
             scanner->delimiters.size = delimiter_count;
-            memcpy(scanner->delimiters.contents, &buffer[size], delimiter_count);
+            memcpy(scanner->delimiters.contents, &buffer[size],
+                   delimiter_count);
             size += delimiter_count;
         }
 
         for (; size + 1 < length; size += 2) {
-            uint16_t indent_value = (unsigned char)buffer[size] | ((unsigned char)buffer[size + 1] << 8);
+            uint16_t indent_value = (unsigned char)buffer[size] |
+                                    ((unsigned char)buffer[size + 1] << 8);
             array_push(&scanner->indents, indent_value);
         }
     }
@@ -483,7 +543,7 @@ void *tree_sitter_mojo_external_scanner_create() {
 #else
     assert(sizeof(Delimiter) == sizeof(char));
 #endif
-    Scanner *scanner = calloc(1, sizeof(Scanner));
+    Scanner *scanner = ts_calloc(1, sizeof(Scanner));
     array_init(&scanner->indents);
     array_init(&scanner->delimiters);
     tree_sitter_mojo_external_scanner_deserialize(scanner, NULL, 0);
