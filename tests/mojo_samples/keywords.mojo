@@ -25,7 +25,7 @@ match x:
 def f():
     return 42
 
-fn g():
+def g() -> Int:
     return 0
 
 # Try/except
@@ -59,7 +59,7 @@ trait T:
     pass
 
 # Mojo-specific (only valid in their grammatical context)
-fn abi_example() abi("C"):
+def abi_example() abi("C"):
     pass
 
 # Lambda

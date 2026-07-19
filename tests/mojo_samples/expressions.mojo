@@ -33,7 +33,6 @@ var lt = 5 < 6
 var gt = 7 > 8
 var le = 9 <= 10
 var ge = 11 >= 12
-var cmp = 1 <> 2
 
 # Boolean
 var and_ = True and False
