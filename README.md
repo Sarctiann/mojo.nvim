@@ -63,7 +63,7 @@ Detects Pixi (`pixi.toml` / `.pixi/`) and virtualenv (`.venv/`) projects and act
 
 ### Treesitter
 
-Registers the self-hosted Mojo parser grammar with `nvim-treesitter`. The grammar files live in `tree-sitter/mojo/` — no external parser repo required. Automatically checks for grammar updates and recompiles when needed, with `:Mojo rebuild` (or `:MojoRebuildParser` when `commands.spread = true`) for manual rebuilds.
+Registers the self-hosted Mojo parser grammar with `nvim-treesitter`. The grammar files live in `tree-sitter/mojo/` — no external parser repo required — and are vendored from [dmitry-salin/tree-sitter-mojo](https://github.com/dmitry-salin/tree-sitter-mojo), which tracks the current Mojo [nightly language reference](https://mojolang.org/nightly/docs/reference/). Automatically checks for grammar updates and recompiles when needed, with `:Mojo rebuild` (or `:MojoRebuildParser` when `commands.spread = true`) for manual rebuilds.
 
 ### LSP
 

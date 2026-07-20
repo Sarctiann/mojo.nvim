@@ -7,15 +7,17 @@
       "path": ".",
       "file-types": ["mojo", "🔥"],
       "highlights": "queries/highlights.scm",
+      "tags": "queries/tags.scm",
       "injection-regex": "mojo"
     }
   ],
   "metadata": {
     "version": "0.1.0",
     "license": "MIT",
-    "description": "Mojo grammar for tree-sitter (self-hosted in mojo.nvim)",
+    "description": "Mojo grammar for tree-sitter (self-hosted in mojo.nvim, vendored from dmitry-salin/tree-sitter-mojo)",
     "links": {
-      "repository": "https://github.com/Sarctiann/mojo.nvim"
+      "repository": "https://github.com/Sarctiann/mojo.nvim",
+      "upstream": "https://github.com/dmitry-salin/tree-sitter-mojo"
     }
   },
   "bindings": {

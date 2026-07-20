@@ -1,127 +1,59 @@
-; Variables — catch-all placed FIRST so specific rules below override it.
+; ---------------------------------------------------------------------------- 
+; Comments
+(comment) @comment @spell
 
-(identifier) @variable
+(
+  (module . (comment) @keyword.directive @nospell)
+  (#lua-match? @keyword.directive "^#!/")
+)
 
-; Mojo self / Self (highlighted before the general naming-convention
-; rules below so they take precedence on the literal identifiers).
-
-((identifier) @variable.builtin
- (#eq? @variable.builtin "self"))
-
-((identifier) @type.builtin
- (#eq? @type.builtin "Self"))
-
-; Identifier naming conventions
-
-((identifier) @constructor
- (#match? @constructor "^[A-Z]"))
-
-((identifier) @constant
- (#match? @constant "^_*[A-Z][A-Z\\d_]*$"))
-
-; Builtin functions
-;
-; Audited against Mojo stdlib tag mojo/v1.0.0b1 (std/prelude/__init__.mojo).
-; Python-only names (exec, eval, callable, compile, vars, bool, int, float,
-; list, dict, set, str, tuple, ...) dropped — Mojo's equivalents are
-; capitalized types (Bool, Int, Float64, List, Dict, ...) and already match
-; the @constructor rule above. Lowercase Mojo-prelude callables retained;
-; idiomatic Mojo builtins (abort, debug_assert, external_call, ...) added.
-
-((call
-  function: (identifier) @function.builtin)
- (#match?
-   @function.builtin
-   "^(abort|abs|all|always_inline|any|ascii|atof|atol|bin|breakpoint|chr|constrained|debug_assert|divmod|enumerate|external_call|hash|hex|input|iter|len|map|materialize|max|min|next|oct|open|ord|partition|pow|print|range|rebind|rebind_var|reflect|repr|reversed|round|slice|sort|swap|unroll|zip|__mlir_attr|__mlir_op|__mlir_type)$"))
-
-; Decorators — the "@" symbol is highlighted separately from the identifier
-; so that both always receive a colour, regardless of whether the name is
-; built-in, dotted, or a call expression.
-
-((decorator
-  "@" @attribute)
- (#set! priority 101))
-
-(decorator
-  (identifier) @attribute)
-
-(decorator
-  (attribute
-    attribute: (identifier) @attribute))
-
-; Built-in decorators (recognized after the generic @attribute rules above
-; so their more-specific capture takes precedence on match).
-
-((decorator
-  (identifier) @attribute.builtin)
- (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod|unavailable)$"))
-
-((decorator
-  (call function: (identifier) @attribute.builtin))
- (#match? @attribute.builtin "^(fieldwise_init|parameter|value|always_inline|noinline|staticmethod|unavailable)$"))
-
-; Function calls
-
-(call
-  function: (attribute attribute: (identifier) @function.method))
-(call
-  function: (identifier) @function)
-
-; Function definitions
-
-(function_definition
-  name: (identifier) @function)
-
-(attribute attribute: (identifier) @property)
-(type (identifier) @type)
-
-; Literals
+; ---------------------------------------------------------------------------- 
+; Symbols
+[
+  (line_continuation)
+  (keyword_only_marker)
+  (positional_only_marker)
+  (infer_only_marker)
+  (ellipsis)
+  "`"
+  (import_prefix)
+  (mlir_attr_special_character)
+  (mlir_type_special_character)
+] @punctuation.special
 
 [
-  (none)
-  (true)
-  (false)
-] @constant.builtin
-
-[
-  (integer)
-  (float)
-] @number
-
-(comment) @comment
-(string) @string
-(escape_sequence) @escape
-
-; Docstrings — first expression of a function body that is a string.
-; Disabled: tree-sitter reports this pattern as impossible in the current
-; grammar (the path through `_statement` → `_simple_statements` → inlined
-; `_simple_statement` → `expression_statement` → `string` requires wildcard
-; matching that the query compiler rejects as impossible).
-; (function_definition
-;   body: (block (expression_statement (string) @string.doc)))
-
-(interpolation
-  "{" @punctuation.special
-  "}" @punctuation.special) @embedded
-
-; Punctuation brackets.
-; `{`/`}` excluded — tree-sitter's query optimizer rejects bare matching
-; of these tokens because they only appear inside compound nodes
-; (dictionary, set, struct_literal, result_convention, etc.).
+  (underscore)
+  (wildcard_import)
+  (mlir_attr_prefix)
+  (mlir_type_prefix)
+] @character.special
 
 [
   "("
   ")"
   "["
   "]"
+  "{"
+  "}"
 ] @punctuation.bracket
 
-; Operators
+[
+  ","
+  "."
+  ":"
+  ";"
+] @punctuation.delimiter
 
+; ---------------------------------------------------------------------------- 
+; Operators
 [
   "-"
   "-="
+  "->"
+  ":="
   "!="
+  "@"
+  "@="
   "*"
   "**"
   "**="
@@ -131,126 +63,585 @@
   "//="
   "/="
   "&"
+  "&="
   "%"
   "%="
   "^"
+  "^="
   "+"
-  "->"
   "+="
   "<"
   "<<"
+  "<<="
   "<="
-  "<>"
   "="
-  ":="
   "=="
   ">"
   ">="
   ">>"
+  ">>="
   "|"
+  "|="
   "~"
-  "and"
-  "in"
-  "is"
-  "not"
-  "or"
-  "is not"
-  "not in"
+  (mlir_operator)
 ] @operator
 
-; General keywords (Python-compatible)
+; ---------------------------------------------------------------------------- 
+; Keywords
+[
+  "and"
+  "del"
+  "in"
+  "is not"
+  "is"
+  "not in"
+  "not"
+  "or"
+] @keyword.operator
+
+[
+  "def"
+  "lambda"
+] @keyword.function
+
+(mlir_region_signature "__mlir_region" @keyword.function)
 
 [
   "as"
   "assert"
-  "async"
-  "await"
-  "break"
-  "class"
-  "continue"
-  "def"
-  "del"
-  "elif"
-  "else"
-  "except"
-  "exec"
-  "finally"
-  "for"
   "from"
   "global"
-  "if"
-  "import"
-  "lambda"
   "nonlocal"
   "pass"
-  "print"
-  "raise"
-  "return"
-  "try"
-  "while"
   "with"
-  "yield"
-  "match"
-  "case"
+  "comptime"
+  "ref"
+  "var"
+  (thin)
 ] @keyword
 
-; Mojo-specific declaration and effect keywords
+(abi "abi" @keyword)
+(where_clause "where" @keyword)
+
+(callable_parameters
+  [
+    "deinit"
+    "mut"
+    "out"
+    "read"
+    "ref"
+    "var"
+  ] @keyword.modifier)
+
+(function_type_parameters
+  [
+    "deinit"
+    "mut"
+    "out"
+    "read"
+    "ref"
+    "var"
+  ] @keyword.modifier)
+
+(capture_parameter
+  [
+    "mut"
+    "read"
+    "ref"
+    "var"
+  ] @keyword.modifier)
 
 [
+  "class"
   "struct"
   "trait"
-  "type"
-  "var"
-  "comptime"
-  "raises"
-  "capturing"
-  "escaping"
-  "thin"
+] @keyword.type
 
-  "abi"
-  "where"
-  "owned"
-  "unified"
-  "inferred"
-] @keyword
-
-; `fn` is a hard compilation error in Mojo v1.0.0b2 — keep parsing for
-; legacy code but mark it as an error in highlighting.
+(extension_header "__extension" @keyword.type)
 
 [
-  "fn"
-] @keyword.error
-
-; `where` in type parameter lists is deprecated in Mojo v1.0.0b2.
-; Use a trailing `where` clause on the declaration instead.
-
-(type_parameter
-  (where_clause
-    "where" @keyword.deprecated)
-  (#set! priority 105))
+  "async"
+  "await"
+] @keyword.coroutine
 
 [
-  "borrowed"
-  "inout"
-  "mut"
-  "read"
-  "ref"
-  "out"
-  "deinit"
-] @keyword.modifier
+  "return"
+  "yield"
+] @keyword.return
 
-; Capture list punctuation — `[` and `]` inside `fn() capturing[...]`.
+(yield "from" @keyword.return)
 
-(capture_list
-  "[" @punctuation.bracket
-  "]" @punctuation.bracket)
+[
+  "elif"
+  "else"
+  "if"
+] @keyword.conditional
 
-; MLIR interop — __mlir_type, __mlir_op and __mlir_attr backtick fragments.
+(match_statement "match" @keyword.conditional)
+(case_clause "case" @keyword.conditional)
 
-(mlir_type "." @punctuation.special (#set! "priority" 110))
-(mlir_type "," @punctuation (#set! "priority" 110))
-(mlir_type) @type
+[
+  "break"
+  "continue"
+  "for"
+  "while"
+] @keyword.repeat
 
-(mlir_fragment (type) @type (#set! "priority" 110))
-(mlir_fragment (integer) @number (#set! "priority" 110))
-(mlir_fragment (mlir_punctuation) @operator (#set! "priority" 110))
+[
+  "except"
+  "finally"
+  "raise"
+  "try"
+] @keyword.exception
+
+(raises "raises" @keyword.exception)
+(raise_statement "from" @keyword.exception)
+
+(try_statement (else_clause "else" @keyword.exception))
+
+"import" @keyword.import
+(aliased_import "as" @keyword.import)
+(relative_aliased_import "as" @keyword.import)
+(selective_import_statement "from" @keyword.import)
+
+; ---------------------------------------------------------------------------- 
+; Literals
+[
+  (true)
+  (false)
+] @boolean
+
+; ---------------------------------------------------------------------------- 
+; Numeric literals
+(integer) @number
+(float) @number.float
+
+; ---------------------------------------------------------------------------- 
+; Strings
+(mlir_string) @string.special
+(string) @string
+(abi (string) @string.special)
+
+[
+  (escape_sequence)
+  (escape_interpolation)
+] @string.escape
+
+; Reset highlighting in f-string interpolations
+(interpolation) @none @nospell
+
+(interpolation[
+  "{"
+  "}"
+] @punctuation.special)
+
+(format_expression[
+  "{"
+  "}"
+] @punctuation.special)
+
+; ---------------------------------------------------------------------------- 
+; Docstrings
+(module _* (string (string_content) @spell)+ @string.documentation)
+(block _* (string (string_content) @spell)+ @string.documentation)
+
+; ---------------------------------------------------------------------------- 
+; Variables
+(identifier) @variable
+(escaped_identifier (escaped_identifier_content) @variable)
+
+; ---------------------------------------------------------------------------- 
+; Subscripts
+(
+  (member_subscript
+    value: (identifier) @variable.member)
+  (#lua-match? @variable.member "^[a-z0-9_].*$")
+)
+
+([
+  (member_subscript
+    value: (identifier) @type)
+  (subscript
+    value: (identifier) @type)
+](#lua-match? @type "^_*[A-Z][A-Za-z0-9_]*$"))
+
+; ---------------------------------------------------------------------------- 
+; Member accesses
+(
+  (member_access
+    member: (identifier) @variable.member)
+(#lua-match? @variable.member "^[a-z0-9_].*$"))
+
+([
+  (member_access
+    value: (identifier) @type)
+  (member_access
+    member: (identifier) @type)
+](#lua-match? @type "^_*[A-Z][A-Za-z0-9_]*$"))
+
+(
+  (member_access
+    value: (identifier) @variable.builtin)
+  (#eq? @variable.builtin "self")
+)
+
+; ---------------------------------------------------------------------------- 
+; Function calls
+(call
+  function: [
+    (identifier) @function.call
+    (subscript
+      value: (identifier) @function.call)
+  ])
+
+(member_call
+  function: [
+    (identifier) @function.method.call
+    (member_subscript
+      value: (identifier) @function.method.call)
+  ])
+
+([
+  (call
+    function: [
+      (identifier) @constructor
+      (subscript
+        value: (identifier) @constructor)
+    ])
+  (member_call
+    function: [
+      (identifier) @constructor
+      (member_subscript
+        value: (identifier) @constructor)
+    ])
+](#lua-match? @constructor "^_*[A-Z]"))
+
+; ---------------------------------------------------------------------------- 
+; Built-in functions
+(
+  (call
+    function: (identifier) @function.builtin)
+  (#any-of? @function.builtin
+    "conforms_to"
+    "debug_assert"
+    "origin_of"
+    "print"
+    "type_of")
+)
+
+(
+  (call
+    function: (subscript
+      value: (identifier) @function.builtin))
+  (#any-of? @function.builtin
+    "bit_width_of"
+    "debug_assert")
+)
+
+; ---------------------------------------------------------------------------- 
+; Parameters
+(parameter_member (member_access
+  value: [
+    (identifier) @variable.parameter
+    (subscript
+      value: (identifier) @variable.parameter)
+  ]))
+(generic_parameter
+  value: (identifier) @variable.parameter)
+(parameter (identifier) @variable.parameter)
+(named_parameter
+  name: (identifier) @variable.parameter)
+
+([
+  (parameter_member (member_access
+    value: [
+      (identifier) @type
+      (subscript
+        value: (identifier) @type)
+    ]))
+  (generic_parameter
+    value: (identifier) @type)
+  (parameter (identifier) @type)
+  (named_parameter
+    name: (identifier) @type)
+](#lua-match? @type "^_*[A-Z][A-Za-z0-9_]*$"))
+
+; ---------------------------------------------------------------------------- 
+; MLIR
+(mlir_op (mlir_dotted_identifier (identifier) @variable.member))
+(mlir_op (mlir_dotted_identifier (identifier) @function.call .))
+(mlir_parameter (mlir_dotted_identifier (identifier) @variable.member))
+(mlir_type (identifier) @variable.member)
+(mlir_attr (identifier) @variable.member)
+
+(mlir_op . "__mlir_op" @type.builtin)
+
+(mlir_type . [
+  "__mlir_type"
+  "__mlir_deferred_type"
+] @type.builtin)
+
+(mlir_attr . [
+  "__mlir_attr"
+  "__mlir_deferred_attr"
+] @type.builtin)
+
+(
+  (mlir_dotted_identifier . (identifier) @type.builtin)
+  (#any-of? @type.builtin
+    "co"
+    "hlcf"
+    "index"
+    "kgen"
+    "lit"
+    "llvm"
+    "nvvm"
+    "pop")
+)
+
+; ---------------------------------------------------------------------------- 
+; Callable parameters
+(keyword_argument
+  name: (identifier) @variable.parameter)
+(constrained_mlir_parameter_decl
+  name: (identifier) @variable.parameter)
+(variadic_parameter_decl
+  name: (identifier) @variable.parameter)
+(parameter_decl
+  name: (identifier) @variable.parameter)
+(lambda_default_parameter_decl
+  name: (identifier) @variable.parameter)
+(constrained_variadic_parameter_decl
+  name: (identifier) @variable.parameter)
+(constrained_parameter_decl
+  name: (identifier) @variable.parameter)
+(default_parameter_decl
+  name: (identifier) @variable.parameter)
+
+([
+  (callable_parameter/parameter_decl
+    name: (identifier) @variable.builtin)
+  (callable_parameter/constrained_parameter_decl
+    name: (identifier) @variable.builtin)
+](#eq? @variable.builtin "self"))
+
+; ---------------------------------------------------------------------------- 
+; Capture parameters
+(capture_parameter
+  name: (identifier) @variable)
+
+; ---------------------------------------------------------------------------- 
+; Parameter declarations
+([
+  (parameter_declaration/variadic_parameter_decl
+    name: (identifier) @type.definition)
+  (parameter_declaration/parameter_decl
+    name: (identifier) @type.definition)
+  (parameter_declaration/constrained_variadic_parameter_decl
+    name: (identifier) @type.definition)
+  (parameter_declaration/constrained_parameter_decl
+    name: (identifier) @type.definition)
+  (parameter_declaration/default_parameter_decl
+    name: (identifier) @type.definition)
+  (parameter_declaration/default_parameter_decl (constrained_parameter_decl
+    name: (identifier) @type.definition))
+  (comptime_parameter
+    name: (identifier) @type.definition)
+](#lua-match? @type.definition "^_*[A-Z][A-Za-z0-9_]*$"))
+
+; ---------------------------------------------------------------------------- 
+; Decorators
+(decorator "@" @attribute[
+  (identifier) @attribute
+  (member_access
+    member: [
+      (identifier) @attribute
+      (member_call
+        function: (identifier) @attribute)
+    ] .)
+  (member_call
+    function: (identifier) @attribute)
+  (call
+    function: (identifier) @attribute)
+])
+
+(
+  (decorator (identifier) @attribute.builtin)
+  (#any-of? @attribute.builtin
+    "always_inline"
+    "doc_hidden"
+    "export"
+    "fieldwise_init"
+    "implicit"
+    "no_inline"
+    "staticmethod")
+)
+
+(
+  (decorator (call
+    function: (identifier) @attribute.builtin))
+  (#any-of? @attribute.builtin
+    "align"
+    "always_inline"
+    "deprecated"
+    "explicit_destroy"
+    "export")
+)
+
+(
+  (decorator (member_access
+    value: (identifier) @attribute.builtin @_first
+    . member: (member_call
+      function: (identifier) @attribute.builtin @_second)))
+  (#eq? @_first "compiler")
+  (#eq? @_second "register")
+)
+
+; ---------------------------------------------------------------------------- 
+; Function declarations
+(function_signature name: (identifier) @function)
+(type_conversion) @function.macro
+
+; ---------------------------------------------------------------------------- 
+; Trait declarations
+(trait_header name: (identifier) @type.definition)
+
+(trait_declaration
+  body: (block[
+    (function_declaration (function_signature
+      name: (identifier) @function.method))
+    (decorated_declaration
+      declaration: (function_declaration
+        (function_signature
+          name: (identifier) @function.method)))
+  ]))
+
+; ---------------------------------------------------------------------------- 
+; Extension declarations
+(extension_header name: (identifier) @type)
+
+(extension_declaration
+  body: (block[
+    (function_declaration (function_signature
+      name: (identifier) @function.method))
+    (decorated_declaration
+      declaration: (function_declaration
+        (function_signature
+          name: (identifier) @function.method)))
+  ]))
+
+; ---------------------------------------------------------------------------- 
+; Struct declarations
+(struct_header name: (identifier) @type.definition)
+
+(
+  (struct_declaration
+    body: (block[
+      (assignment
+        left: (constrained_lhs (identifier) @variable.member))
+      (decorated_declaration
+        declaration: (assignment
+          left: (constrained_lhs (identifier) @variable.member)))
+    ]))
+  (#lua-match? @variable.member "^[a-z0-9_].*$")
+)
+
+(struct_declaration
+  body: (block[
+    (function_declaration (function_signature
+      name: (identifier) @function.method))
+    (decorated_declaration
+      declaration: (function_declaration
+        (function_signature
+          name: (identifier) @function.method)))
+  ]))
+
+(
+  (struct_declaration
+    body: (block[
+      (function_declaration (function_signature
+        name: (identifier) @constructor))
+      (decorated_declaration
+        declaration: (function_declaration
+          (function_signature
+            name: (identifier) @constructor)))
+    ]))
+  (#eq? @constructor "__init__")
+)
+
+; ---------------------------------------------------------------------------- 
+; MLIR region declarations
+(mlir_region_signature name: (identifier) @function)
+
+; ---------------------------------------------------------------------------- 
+; Imports
+(selective_import_statement
+  module: [
+    (import
+      name: (dotted_identifier (identifier) @module))
+    (relative_import
+      name: (dotted_identifier (identifier) @module))
+  ])
+
+(
+  (selective_import_statement "import" [
+    (import
+      name: (dotted_identifier (identifier) @type))
+    (aliased_import
+      name: (dotted_identifier (identifier) @type))
+    (aliased_import
+      alias: (identifier) @type)
+  ])
+  (#lua-match? @type "^_*[A-Z][A-Za-z0-9_]*$")
+)
+
+(module_import_statement
+  module: [
+    (import
+      name: (dotted_identifier (identifier) @module))
+    (aliased_import
+      name: (dotted_identifier (identifier) @module)
+      alias: (identifier) @module)
+    (relative_import
+      name: (dotted_identifier (identifier) @module))
+    (relative_aliased_import
+      name: ((dotted_identifier (identifier) @module))?
+      alias: (identifier) @module)
+  ])
+
+; ---------------------------------------------------------------------------- 
+; Constants
+((identifier) @constant (#lua-match? @constant "^_*[A-Z]{2}[A-Z0-9_]*$"))
+(none) @constant.builtin
+
+; ---------------------------------------------------------------------------- 
+; Built-in types
+(self) @type.builtin
+
+(
+  (member_access
+    value: (subscript
+      value: (identifier) @type.builtin))
+  (#eq? @type.builtin "reflect")
+)
+
+([
+  (generic_parameter
+    value: (identifier) @type.builtin)
+  (subscript
+    value: (identifier) @type.builtin)
+](#any-of? @type.builtin
+  "SIMD"
+  "Reflected"))
+
+(
+  (selective_import_statement "import" [
+    (import
+      name: (dotted_identifier (identifier) @type.builtin))
+    (aliased_import
+      name: (dotted_identifier (identifier) @type.builtin))
+  ])
+  (#any-of? @type.builtin
+    "SIMD"
+    "Reflected")
+)

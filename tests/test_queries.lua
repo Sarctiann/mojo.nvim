@@ -108,26 +108,32 @@ for _, filepath in ipairs(mojo_files) do
     check("(string) @string", 3, "string")
     check([[
       ((identifier) @constant
-       (#match? @constant "^_*[A-Z][A-Z\\d_]*$"))
+       (#match? @constant "^_*[A-Z][A-Z0-9_]*$"))
     ]], 2, "constant")
     check([[
-      ((identifier) @constructor
-       (#match? @constructor "^[A-Z]"))
+      ((identifier) @type
+       (#match? @type "^[A-Z]"))
     ]], 5, "type/constructor")
     check([[
       ((identifier) @variable.builtin
        (#eq? @variable.builtin "self"))
     ]], 1, "self")
-    check([[
-      ((identifier) @type.builtin
-       (#eq? @type.builtin "Self"))
-    ]], 1, "Self")
-    check("(function_definition name: (identifier) @function)", 4, "function_definition")
+    check("(self) @type.builtin", 1, "Self")
+    check("(function_signature name: (identifier) @function)", 4, "function_signature")
     check("(call function: (identifier) @function)", 3, "call")
+    check("(member_call function: (identifier) @function.method)", 1, "member_call")
     check("[(none) (true) (false)] @constant.builtin", 1, "constant.builtin")
     check("[\"(\" \")\" \"[\" \"]\"] @punctuation.bracket", 4, "punctuation.bracket")
-    check("(type (identifier) @type)", 5, "type annotation")
-    check("(attribute attribute: (identifier) @property)", 1, "property")
+    check("(member_access member: (identifier) @property)", 1, "property")
+    check("(decorator (identifier) @attribute)", 1, "decorator")
+    check("(struct_header name: (identifier) @type)", 1, "struct_header")
+    check("(trait_header name: (identifier) @type.definition)", 1, "trait_header")
+    check([[
+      ((struct_declaration
+         body: (block (function_declaration (function_signature
+           name: (identifier) @constructor))))
+       (#eq? @constructor "__init__"))
+    ]], 1, "struct constructor")
   end
 
   vim.api.nvim_buf_delete(buf, {force = true})

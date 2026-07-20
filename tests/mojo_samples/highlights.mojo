@@ -1,111 +1,122 @@
-# Test file for mojo.nvim highlights.scm updates
-# grammar: tree-sitter-mojo PR #10
+# Test file for mojo.nvim highlights.scm (dmitry-salin/tree-sitter-mojo)
+# Exercises highlight groups against current Mojo (nightly language reference).
 
 # --- 0. Basic literals ---
 
-var yes = True                           # (true) @constant.builtin
-var no = False                           # (false) @constant.builtin
-var nothing = None                       # (none) @constant.builtin
+var yes = True                             # (true) @boolean
+var no = False                             # (false) @boolean
+var nothing = None                         # (none) @constant.builtin
+var count = 42                             # (integer) @number
+var big = 1_000_000                        # (integer) @number
+var ratio = 3.14                           # (float) @number.float
+var greeting = "hello"                     # (string) @string
+var name = "world"                         # (string) @string
+var location = "src/main.mojo"             # (string) @string
 
-# --- 1. Function effects (raises_clause removed, now keyword tokens) ---
+# --- 1. Function effects (raises / thin / abi) ---
 
-def func_no_return() raises:               # "raises" should be @keyword
+def func_raises() raises:                  # "raises" @keyword.exception
     pass
 
-def func_typed_raises() raises Error:      # "raises" @keyword, Error @type
-    pass
-
-def func_effects() raises capturing:       # "raises" + "capturing" both @keyword
+def func_typed_raises() raises Error:      # "raises" @keyword.exception, Error @type
     pass
 
 def func_thin() thin:                      # "thin" @keyword
     pass
 
-# --- 2. New keywords ---
-
 @parameter
-def test_abi() abi("C"):                   # "abi" @keyword
+def func_abi() abi("C"):                   # "abi" @keyword
     pass
 
-@value
-struct MyStruct(Sized, Comparable):
-    pass
+# --- 2. Declarations: struct / trait / type alias / var ---
 
-type MyAlias = Int                        # "type" @keyword
+@fieldwise_init
+struct MyStruct(Copyable, Movable):
+    var x: Int
+    var y: Int
+
+    def get_x(self) -> Int:
+        return self.x
+
+trait Greetable:
+    def greet(self) -> String:
+        ...
+
+type MyAlias = Int                         # "type" @keyword.type
 var my_var: Int = 42                       # "var" @keyword
 
 # --- 3. Argument conventions (@keyword.modifier) ---
 
-def read_param(inout buf: Tensor, borrowed other: Tensor):
+def read_param(mut buf: Tensor, read other: Tensor):
     pass
 
-def multi_ref(ref[origin] self: Tensor):
+def out_param(out result: Int):
+    pass
+
+def ref_param(ref[origin] item: Tensor):
     pass
 
 # --- 4. MLIR interop ---
 
-fn mlir_example():
+def mlir_example():
     var t = __mlir_type.index              # "index" in mlir_type @type
-    var attr = __mlir_type.`!co.routine`
 
 # --- 5. Punctuation brackets ---
 
-var lst = [1, 2, (3 + 4)]                 # ()[]{} should be @punctuation.bracket
+var lst = [1, 2, (3 + 4)]                  # ()[]{} should be @punctuation.bracket
 
-# --- 6. Builtins (updated list) ---
+# --- 6. Builtins ---
 
-var length = len(items)                    # "len" @function.builtin
-var result = unroll(my_array)              # "unroll" @function.builtin
+var length = len(items)                    # call
+print(greeting)                            # "print" @function.builtin
+debug_assert(count > 0)                    # "debug_assert" @function.builtin
 
-# --- 7. Constants with leading underscore ---
+# --- 7. Constants with leading/all uppercase ---
 
-var __VERSION__: String = "1.0"            # @constant (leading underscore)
-var MAX_SIZE: Int = 1024                      # @constant
+var MAX_SIZE = 1024                        # @constant
+var DEFAULT_NAME = "anon"                  # @constant
 
 # --- 8. Docstring ---
 
-fn documented():
-    """This is a docstring"""             # @string.doc
+def documented():
+    """This is a docstring."""             # @string.documentation
     pass
 
 # --- 9. Intersection & callable types ---
 
-type MyBound = Copyable & RegisterPassable          # "&" @operator
-type CallableType = def(Int) -> Int                 # callable type literal
+type MyBound = Copyable & Movable          # "&" @operator
+type CallableType = def(Int) -> Int        # callable type literal
 
 # --- 10. comptime control flow ---
 
-comptime if MOJO_VERSION >= 24:          # "comptime" @keyword
-    print("new features")
+comptime if True:                          # "comptime" @keyword
+    print("compile time")
 
-comptime for x in range(5):             # "comptime" @keyword
+comptime for i in range(5):                # "comptime" @keyword
     pass
 
 # --- 11. Transfer expression ---
 
-def transfer_example() raises:
-    return result^                       # postfix ^ operator
-    pass
+def transfer_example():
+    var owned_value = compute()
+    return owned_value^                    # postfix ^ operator
 
 # --- 12. Extension definition ---
 
 __extension List:
     pass
 
-# --- 13. Typed self ---
+# --- 13. Typed self (Self) and constructor ---
 
 struct Buffer:
-    fn __setitem__(self: Buffer[Self.dtype], idx: Int):
+    def __init__(out self):                 # "__init__" @constructor
         pass
 
-# Standalone self usage
-fn use_self():
-    self.method()                        # "self" @variable.builtin
+    def clone(self: Self) -> Self:
+        return self
 
-# --- 14. Struct literals ---
+# --- 14. Calls & member access ---
 
-var point = {x = 10, y = 20}            # struct literal
-
-# --- 15. Comptime alias with parameters ---
-
-comptime Ptr[mut: Bool] = IntPointer     # "comptime" @keyword
+var s = MyStruct(1, 2)                      # constructor call
+var gx = s.get_x()                          # member call
+print(s.x)                                  # member access
