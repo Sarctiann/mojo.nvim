@@ -91,14 +91,62 @@ else
 	fail(string.format("lsp_status() expected 'unavailable', got %q", ls))
 end
 
--- dbg_status returns "unavailable" without nvim-dap
+-- dbg_status reflects debug availability (deterministic via mocked debug module)
 print("--- dbg_status ---")
+local debug_mock = { status = function() end }
+package.loaded["mojo.debug"] = debug_mock
+
+debug_mock.status = function()
+	return { native = false, dap = false, active = nil }
+end
 local ds = status.dbg_status()
 if ds == "unavailable" then
-	pass("dbg_status() = unavailable (no dap binary)")
+	pass("dbg_status() = unavailable (no debug binaries)")
 else
 	fail(string.format("dbg_status() expected 'unavailable', got %q", ds))
 end
+
+debug_mock.status = function()
+	return { native = true, dap = false, active = nil }
+end
+ds = status.dbg_status()
+if ds == "inactive" then
+	pass("dbg_status() = inactive (native binaries present)")
+else
+	fail(string.format("dbg_status() expected 'inactive', got %q", ds))
+end
+
+debug_mock.status = function()
+	return { native = true, dap = false, active = "native" }
+end
+ds = status.dbg_status()
+if ds == "active" then
+	pass("dbg_status() = active (native session)")
+else
+	fail(string.format("dbg_status() expected 'active', got %q", ds))
+end
+
+debug_mock.status = function()
+	return { native = false, dap = true, active = "dap" }
+end
+ds = status.dbg_status()
+if ds == "inactive" then
+	pass("dbg_status() = inactive (dap selected, no active session)")
+else
+	fail(string.format("dbg_status() expected 'inactive', got %q", ds))
+end
+
+debug_mock.status = function()
+	return { native = false, dap = false, active = "dap" }
+end
+ds = status.dbg_status()
+if ds == "inactive" then
+	pass("dbg_status() = inactive (dap selected, no binary)")
+else
+	fail(string.format("dbg_status() expected 'inactive', got %q", ds))
+end
+
+package.loaded["mojo.debug"] = nil
 
 -- fmt_status returns "unavailable" without mojo binary
 print("--- fmt_status ---")

@@ -18,6 +18,62 @@ local current_file = nil
 --- @type integer|nil
 local source_buf = nil
 
+--- @type boolean  Whether the active native LLDB supports Python scripting.
+local native_supports_script = false
+
+--- Whether the LLDB binary supports the embedded Python script interpreter.
+--- Mojo's `mojo-lldb` is frequently built without scripting support, so data
+--- formatters cannot be imported (and attempting it only produces noise).
+--- @param bin string|nil
+--- @return boolean
+local function lldb_supports_scripting(bin)
+	if not bin or bin == "" then
+		return false
+	end
+	local ok, handle = pcall(vim.system, { bin, "--batch", "-o", "script pass" }, { text = true })
+	if not ok or not handle then
+		return false
+	end
+	local result = handle:wait()
+	local out = (result.stdout or "") .. "\n" .. (result.stderr or "")
+	if out:find("script interpreter unavailable") or out:find("without scripting language support") then
+		return false
+	end
+	return true
+end
+
+--- Choose the LLDB binary for the native (terminal) debug session.
+--- Prefers the environment's `mojo-lldb`; if that build lacks a Python
+--- scripting interpreter (Mojo's bundled `mojo-lldb` frequently does), fall
+--- back to a system `lldb` that supports scripting so Mojo data formatters
+--- can still be loaded. If no scripting-capable binary exists, returns the
+--- primary `mojo-lldb` (formatters are then skipped gracefully).
+--- @return string|nil
+function M.pick_native_lldb()
+	local env = require("mojo.env")
+	local primary = env.get_dbg_native_cmd()
+	if primary and lldb_supports_scripting(primary) then
+		return primary
+	end
+	local sys = vim.fn.exepath("lldb")
+	if sys and sys ~= "" and lldb_supports_scripting(sys) then
+		vim.notify(
+			"mojo.nvim: mojo-lldb lacks Python scripting; using " .. sys .. " so data formatters load",
+			vim.log.levels.INFO
+		)
+		return sys
+	end
+	return primary
+end
+
+--- Attempt to import a Mojo LLDB formatter script.
+--- Sent as a plain LLDB `command script import` (the native LLDB binary has
+--- already been selected to support Python scripting, so this succeeds).
+--- @param path string
+function M._import_formatter(path)
+	M.send('command script import "' .. path .. '"')
+end
+
 function M.start()
 	local file = vim.fn.expand("%:p")
 	if file == "" then
@@ -40,12 +96,19 @@ function M.start()
 		return
 	end
 
-	-- Find the mojo-lldb binary (native LLDB CLI adapted for Mojo)
-	local lldb_bin = require("mojo.env").get_dbg_native_cmd()
+	-- Choose the native LLDB binary. Prefers the environment's mojo-lldb, but
+	-- falls back to a system lldb with Python scripting so Mojo data formatters
+	-- can load (Mojo's bundled mojo-lldb is often built without scripting).
+	local lldb_bin = M.pick_native_lldb()
 	if not lldb_bin then
 		vim.notify("mojo.nvim: mojo-lldb not found — cannot start native debug", vim.log.levels.ERROR)
 		return
 	end
+
+	-- Probe whether this LLDB build supports the embedded Python interpreter.
+	-- Mojo's mojo-lldb is often built without it, in which case data formatters
+	-- cannot be loaded; probing avoids sending noisy failing import commands.
+	native_supports_script = lldb_supports_scripting(lldb_bin)
 
 	-- Quarantine check (only meaningful for the mojo binary, kept for parity)
 	if vim.fn.has("mac") == 1 and mojo:sub(1, 1) == "/" then
@@ -96,9 +159,26 @@ function M._wait_for_prompt()
 		end
 		local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 		for _, line in ipairs(lines) do
-			if line:match("%(lldb%)") then
+			-- Match the standalone prompt only (a line that is just `(lldb)`),
+			-- not e.g. `(lldb) target create "..."`, so formatters are loaded
+			-- once the session is actually ready rather than mid-target-create.
+			if line:match("^%s*%(lldb%)%s*$") then
 				timer:stop()
 				timer:close()
+				-- Load Mojo LLDB data formatters (only if the LLDB build supports
+				-- Python scripting — Mojo's mojo-lldb frequently does not, in which
+				-- case importing only produces noise). The import is still
+				-- best-effort and captured silently when supported.
+				if native_supports_script then
+					local detected = require("mojo.env.detect").detect()
+					local visualizers = require("mojo.adapters.dap").find_visualizers(detected)
+					if visualizers then
+						local fmt = vim.fs.joinpath(visualizers, "lldbDataFormatters.py")
+						local mlir = vim.fs.joinpath(visualizers, "mlirDataFormatters.py")
+						M._import_formatter(fmt)
+						M._import_formatter(mlir)
+					end
+				end
 				require("mojo.debug.breakpoints").sync_all()
 				return
 			end

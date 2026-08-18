@@ -58,6 +58,69 @@ local function find_package_root(bin_dir)
 	return nil
 end
 
+--- Locate the Mojo LLDB visualizers and plugin for the active environment.
+--- Searches both the venv-style `site-packages/modular/lib` and the env `lib` dir.
+--- @param detected Mojo-lang.DetectedEnv|nil
+--- @return string|nil, string|nil  (visualizers_dir, plugin_path)
+local function find_visualizers(detected)
+	if not detected then
+		return nil, nil
+	end
+	local ext = vim.fn.has("mac") == 1 and "dylib" or "so"
+	local candidates = {}
+	if detected.bin_dir then
+		local pkg_root = find_package_root(detected.bin_dir)
+		if pkg_root then
+			table.insert(candidates, vim.fs.joinpath(pkg_root, "lib"))
+		end
+	end
+	if detected.env_dir then
+		table.insert(candidates, vim.fs.joinpath(detected.env_dir, "lib"))
+	end
+	for _, lib in ipairs(candidates) do
+		local vis = vim.fs.joinpath(lib, "lldb-visualizers")
+		if vim.uv.fs_stat(vis) then
+			local plugin = vim.fs.joinpath(lib, "libMojoLLDB." .. ext)
+			return vis, (vim.uv.fs_stat(plugin) and plugin or nil)
+		end
+	end
+	return nil, nil
+end
+
+--- Locate the native `lldb-dap` binary to use as the DAP adapter command.
+--- @param detected Mojo-lang.DetectedEnv|nil
+--- @return string|nil
+local function find_lldb_dap(detected)
+	if not detected then
+		return nil
+	end
+	local roots = {}
+	if detected.bin_dir then
+		local pkg_root = find_package_root(detected.bin_dir)
+		if pkg_root then
+			table.insert(roots, vim.fs.joinpath(pkg_root, "bin"))
+		end
+	end
+	if detected.env_dir then
+		table.insert(roots, vim.fs.joinpath(detected.env_dir, "bin"))
+	end
+	-- Prefer a plain `lldb-dap` (uv/PyPI installs), then Mojo's real
+	-- `_mojo-lldb-dap` binary. Skip the `mojo-lldb-dap` shell wrapper: it
+	-- hard-codes `$CONDA_PREFIX/bin/_mojo-lldb-dap` and breaks when CONDA_PREFIX
+	-- is unset, whereas calling the real binary directly lets the adapter
+	-- inject the formatter pre-init-commands itself (without the wrapper's
+	-- fragile `?command script import`).
+	for _, bin_dir in ipairs(roots) do
+		for _, name in ipairs({ "lldb-dap", "_mojo-lldb-dap" }) do
+			local bin = vim.fs.joinpath(bin_dir, name)
+			if vim.uv.fs_stat(bin) then
+				return bin
+			end
+		end
+	end
+	return nil
+end
+
 local function ensure_gitignore()
 	if gitignore_notified then
 		return
@@ -107,12 +170,15 @@ local function build_mojo_file()
 		vim.notify("mojo.nvim: mojo binary not found", vim.log.levels.ERROR)
 		return nil, nil
 	end
+	local build_args = require("mojo.config").options.debug.build_args or {}
 	local dbg_dir = vim.fs.joinpath(vim.fn.getcwd(), "_mojo-debug")
 	ensure_gitignore()
 	vim.fn.mkdir(dbg_dir, "p")
 	local base = vim.fn.fnamemodify(file, ":t:r")
 	local out = vim.fs.joinpath(dbg_dir, base .. ".bin")
-	local result = vim.fn.system({ mojo, "build", "--debug-level=full", "-O0", file, "-o", out })
+	local cmd = { mojo, "build", "--debug-level=full", "-O0", file, "-o", out }
+	vim.list_extend(cmd, build_args)
+	local result = vim.fn.system(cmd)
 	if vim.v.shell_error ~= 0 then
 		vim.notify("mojo.nvim: build failed before debugging:\n" .. result, vim.log.levels.ERROR)
 		return nil, nil
@@ -150,28 +216,25 @@ function M.setup(opts)
 		local detected = detect.detect()
 		local command = cmd[1]
 		local args = nil --- @type string[]|nil
-		if detected and detected.type == "venv" and detected.bin_dir then
-			local pkg_root = find_package_root(detected.bin_dir)
-			if pkg_root then
-				local pkg_lib = vim.fs.joinpath(pkg_root, "lib")
-				local ext = vim.fn.has("mac") == 1 and "dylib" or "so"
-				local plugin = vim.fs.joinpath(pkg_lib, "libMojoLLDB." .. ext)
-				local visualizers = vim.fs.joinpath(pkg_lib, "lldb-visualizers")
+		local visualizers, plugin = find_visualizers(detected)
+		if visualizers then
+			adapter_env.MODULAR_MOJO_MAX_LLDB_VISUALIZERS_PATH = visualizers
+			if plugin then
 				adapter_env.MODULAR_MOJO_MAX_LLDB_PLUGIN_PATH = plugin
-				adapter_env.MODULAR_MOJO_MAX_LLDB_VISUALIZERS_PATH = visualizers
-				local native_bin = vim.fs.joinpath(pkg_root, "bin", "lldb-dap")
-				if vim.uv.fs_stat(native_bin) then
-					ensure_macos_executable(native_bin)
-					command = native_bin
-					args = {
-						"--pre-init-command",
-						"?!plugin load " .. plugin,
-						"--pre-init-command",
-						"?command script import " .. vim.fs.joinpath(visualizers, "lldbDataFormatters.py"),
-						"--pre-init-command",
-						"?command script import " .. vim.fs.joinpath(visualizers, "mlirDataFormatters.py"),
-					}
+			end
+			local native_bin = find_lldb_dap(detected)
+			if native_bin then
+				ensure_macos_executable(native_bin)
+				command = native_bin
+				args = {}
+				if plugin then
+					table.insert(args, "--pre-init-command")
+					table.insert(args, "plugin load " .. plugin)
 				end
+				table.insert(args, "--pre-init-command")
+				table.insert(args, "command script import " .. vim.fs.joinpath(visualizers, "lldbDataFormatters.py"))
+				table.insert(args, "--pre-init-command")
+				table.insert(args, "command script import " .. vim.fs.joinpath(visualizers, "mlirDataFormatters.py"))
 			end
 		end
 		if env_dir then
@@ -264,6 +327,14 @@ end
 function M.build()
 	local bin, _ = build_mojo_file()
 	return bin
+end
+
+--- Locate the Mojo LLDB visualizers for the active environment.
+--- Exposed for the native (terminal) debug adapter to load data formatters.
+--- @param detected Mojo-lang.DetectedEnv|nil
+--- @return string|nil, string|nil
+function M.find_visualizers(detected)
+	return find_visualizers(detected)
 end
 
 return M
