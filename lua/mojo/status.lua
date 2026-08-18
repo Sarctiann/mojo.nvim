@@ -310,6 +310,38 @@ M.actions = {
 		M._reset_lsp_crash()
 		require("mojo.env.version").clear_cache()
 	end,
+	["Cache Location"] = function()
+		local mojo = env.get_mojo_cmd()
+		if not mojo then
+			vim.notify("mojo.nvim: mojo binary not found", vim.log.levels.ERROR)
+			return
+		end
+		local result = vim.system({ mojo, "--print-cache-location" }, { text = true }):wait()
+		if result.code ~= 0 then
+			vim.notify("mojo.nvim: failed to read cache location: " .. (result.stderr or ""):gsub("\n", " "),
+				vim.log.levels.ERROR)
+			return
+		end
+		vim.notify("Mojo cache location:\n" .. vim.trim(result.stdout), vim.log.levels.INFO)
+	end,
+	["Clear Cache"] = function()
+		local mojo = env.get_mojo_cmd()
+		if not mojo then
+			vim.notify("mojo.nvim: mojo binary not found", vim.log.levels.ERROR)
+			return
+		end
+		local choice = vim.fn.confirm("Clear the Mojo cache?", "&Yes\n&No", 2)
+		if choice ~= 1 then
+			return
+		end
+		local result = vim.system({ mojo, "--clear-cache" }, { text = true }):wait()
+		if result.code ~= 0 then
+			vim.notify("mojo.nvim: failed to clear cache: " .. (result.stderr or ""):gsub("\n", " "),
+				vim.log.levels.ERROR)
+			return
+		end
+		vim.notify("mojo.nvim: cache cleared", vim.log.levels.INFO)
+	end,
 }
 
 --- Show floating window with numbered actions.
@@ -322,47 +354,35 @@ function M.show_menu()
 		table.insert(lines, string.format("   [%d] %s", i, item))
 	end
 
-	local width = 20
-	local height = #lines
-	local buf = vim.api.nvim_create_buf(false, true)
-	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-	vim.bo[buf].filetype = "mojo-prompt"
-	vim.bo[buf].modifiable = false
+  local width = 20
+  local height = #lines
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].filetype = "mojo-prompt"
+  vim.bo[buf].modifiable = false
 
-	vim.api.nvim_open_win(buf, true, {
-		relative = "editor",
-		width = width,
-		height = height,
-		col = math.floor((vim.o.columns - width) / 2),
-		row = math.floor((vim.o.lines - height) / 2),
-		style = "minimal",
-		border = "rounded",
-		title = " Press [ 1 | 2 | 3]",
-		title_pos = "center",
-	})
+  vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    col = math.floor((vim.o.columns - width) / 2),
+    row = math.floor((vim.o.lines - height) / 2),
+    style = "minimal",
+    border = "rounded",
+    title = " Press [ 1 .. " .. #items .. " ]",
+    title_pos = "center",
+  })
 
-	vim.api.nvim_buf_set_keymap(buf, "n", "1", "", {
-		callback = function()
-			M._close_and_run(items[1])
-		end,
-		noremap = true,
-		silent = true,
-	})
-	vim.api.nvim_buf_set_keymap(buf, "n", "2", "", {
-		callback = function()
-			M._close_and_run(items[2])
-		end,
-		noremap = true,
-		silent = true,
-	})
-	vim.api.nvim_buf_set_keymap(buf, "n", "3", "", {
-		callback = function()
-			M._close_and_run(items[3])
-		end,
-		noremap = true,
-		silent = true,
-	})
-	vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
+  for i = 1, math.min(#items, 9) do
+    vim.api.nvim_buf_set_keymap(buf, "n", tostring(i), "", {
+      callback = function()
+        M._close_and_run(items[i])
+      end,
+      noremap = true,
+      silent = true,
+    })
+  end
+  vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
 		callback = function()
 			M._close_and_run()
 		end,
