@@ -1,5 +1,7 @@
 # Self-Host Tree-Sitter Mojo Parser
 
+**Superseded by:** `2026-07-19-adopt-dmitry-salin-grammar-design.md`
+
 **Date:** 2026-06-06
 **Status:** Implemented
 **TODO Item:** P0 #1 — Re-implement tree-sitter-mojo parser in-repo

@@ -47,7 +47,7 @@ var my_var: Int = 42                       # "var" @keyword
 
 # --- 3. Argument conventions (@keyword.modifier) ---
 
-def read_param(mut buf: Tensor, read other: Tensor):
+def imm_param(mut buf: Tensor, imm other: Tensor):
     pass
 
 def out_param(out result: Int):

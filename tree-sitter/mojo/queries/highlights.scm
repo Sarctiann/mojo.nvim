@@ -10,25 +10,6 @@
 ; ---------------------------------------------------------------------------- 
 ; Symbols
 [
-  (line_continuation)
-  (keyword_only_marker)
-  (positional_only_marker)
-  (infer_only_marker)
-  (ellipsis)
-  "`"
-  (import_prefix)
-  (mlir_attr_special_character)
-  (mlir_type_special_character)
-] @punctuation.special
-
-[
-  (underscore)
-  (wildcard_import)
-  (mlir_attr_prefix)
-  (mlir_type_prefix)
-] @character.special
-
-[
   "("
   ")"
   "["
@@ -44,47 +25,103 @@
   ";"
 ] @punctuation.delimiter
 
+; Reset highlighting in f-string interpolations
+(interpolation) @none @nospell
+
+(interpolation[
+  "{"
+  "}"
+] @punctuation.special)
+
+(format_expression[
+  "{"
+  "}"
+] @punctuation.special)
+
+[
+  (line_continuation)
+  (keyword_only_marker)
+  (positional_only_marker)
+  (infer_only_marker)
+  "`"
+  (mlir_type_punctuation)
+  (mlir_attr_punctuation)
+] @punctuation.special
+
+[
+  (ellipsis)
+  (underscore)
+  (import_prefix)
+  (wildcard_import)
+  (mlir_type_prefix)
+  (mlir_attr_prefix)
+] @character.special
+
+(list_splat_pattern "*" @character.special)
+(splat_pattern ["*" "**"] @character.special)
+(variadic_parameter ["*" "**"] @character.special)
+(variadic_parameter_decl ["*" "**"] @character.special)
+(constrained_variadic_parameter_decl ["*" "**"] @character.special)
+(except_clause "except" "*" @character.special)
+
 ; ---------------------------------------------------------------------------- 
 ; Operators
 [
-  "-"
-  "-="
-  "->"
-  ":="
-  "!="
-  "@"
-  "@="
-  "*"
-  "**"
-  "**="
-  "*="
-  "/"
-  "//"
-  "//="
-  "/="
-  "&"
-  "&="
-  "%"
-  "%="
-  "^"
-  "^="
-  "+"
-  "+="
-  "<"
-  "<<"
-  "<<="
-  "<="
   "="
-  "=="
-  ">"
-  ">="
-  ">>"
-  ">>="
-  "|"
-  "|="
+  "->"
+  "+"
+  "-"
   "~"
+  "^"
+  "&"
+  "|"
   (mlir_operator)
 ] @operator
+
+(binary_operator
+  operator: [
+    "**"
+    "*"
+    "@"
+    "/"
+    "//"
+    "%"
+    "<<"
+    ">>"
+  ] @operator)
+
+(comparison_operator
+  operator: [
+    "=="
+    "!="
+    "<"
+    "<="
+    ">"
+    ">="
+  ] @operator)
+
+(walrus_operator
+  operator: ":=" @operator)
+
+(augmented_assignment
+  operator: [
+    "+="
+    "-="
+    "*="
+    "/="
+    "//="
+    "%="
+    "**="
+    "@="
+    "&="
+    "|="
+    "^="
+    "<<="
+    ">>="
+  ] @operator)
+
+(dictionary_splat "**" @operator)
+(list_splat "*" @operator)
 
 ; ---------------------------------------------------------------------------- 
 ; Keywords
@@ -126,9 +163,9 @@
 (callable_parameters
   [
     "deinit"
+    "imm"
     "mut"
     "out"
-    "read"
     "ref"
     "var"
   ] @keyword.modifier)
@@ -136,17 +173,17 @@
 (function_type_parameters
   [
     "deinit"
+    "imm"
     "mut"
     "out"
-    "read"
     "ref"
     "var"
   ] @keyword.modifier)
 
 (capture_parameter
   [
+    "imm"
     "mut"
-    "read"
     "ref"
     "var"
   ] @keyword.modifier)
@@ -201,7 +238,6 @@
 
 "import" @keyword.import
 (aliased_import "as" @keyword.import)
-(relative_aliased_import "as" @keyword.import)
 (selective_import_statement "from" @keyword.import)
 
 ; ---------------------------------------------------------------------------- 
@@ -227,23 +263,10 @@
   (escape_interpolation)
 ] @string.escape
 
-; Reset highlighting in f-string interpolations
-(interpolation) @none @nospell
-
-(interpolation[
-  "{"
-  "}"
-] @punctuation.special)
-
-(format_expression[
-  "{"
-  "}"
-] @punctuation.special)
-
 ; ---------------------------------------------------------------------------- 
 ; Docstrings
-(module _* (string (string_content) @spell)+ @string.documentation)
-(block _* (string (string_content) @spell)+ @string.documentation)
+(module (string (string_content) @spell) @string.documentation)
+(block (string (string_content) @spell) @string.documentation)
 
 ; ---------------------------------------------------------------------------- 
 ; Variables
@@ -316,8 +339,6 @@
     ])
 ](#lua-match? @constructor "^_*[A-Z]"))
 
-; ---------------------------------------------------------------------------- 
-; Built-in functions
 (
   (call
     function: (identifier) @function.builtin)
@@ -335,17 +356,21 @@
       value: (identifier) @function.builtin))
   (#any-of? @function.builtin
     "bit_width_of"
-    "debug_assert")
+    "debug_assert"
+    "rebind"
+    "rebind_var")
 )
 
 ; ---------------------------------------------------------------------------- 
 ; Parameters
-(parameter_member (member_access
+(parameter_member
   value: [
     (identifier) @variable.parameter
     (subscript
       value: (identifier) @variable.parameter)
-  ]))
+  ])
+(parameter_member
+  member: (identifier) @variable.parameter)
 (generic_parameter
   value: (identifier) @variable.parameter)
 (parameter (identifier) @variable.parameter)
@@ -353,12 +378,14 @@
   name: (identifier) @variable.parameter)
 
 ([
-  (parameter_member (member_access
+  (parameter_member
     value: [
       (identifier) @type
       (subscript
         value: (identifier) @type)
-    ]))
+    ])
+  (parameter_member
+    member: (identifier) @type)
   (generic_parameter
     value: (identifier) @type)
   (parameter (identifier) @type)
@@ -445,6 +472,8 @@
     name: (identifier) @type.definition)
   (parameter_declaration/default_parameter_decl (constrained_parameter_decl
     name: (identifier) @type.definition))
+  (constrained_comptime_parameter
+    name: (identifier) @type.definition)
   (comptime_parameter
     name: (identifier) @type.definition)
 ](#lua-match? @type.definition "^_*[A-Z][A-Za-z0-9_]*$"))
@@ -578,17 +607,17 @@
 (selective_import_statement
   module: [
     (import
-      name: (dotted_identifier (identifier) @module))
+      name: (dotted_escaped_identifier (identifier) @module))
     (relative_import
-      name: (dotted_identifier (identifier) @module))
+      name: (dotted_escaped_identifier (identifier) @module))
   ])
 
 (
   (selective_import_statement "import" [
     (import
-      name: (dotted_identifier (identifier) @type))
+      name: (dotted_escaped_identifier (identifier) @type))
     (aliased_import
-      name: (dotted_identifier (identifier) @type))
+      name: (dotted_escaped_identifier (identifier) @type))
     (aliased_import
       alias: (identifier) @type)
   ])
@@ -598,14 +627,9 @@
 (module_import_statement
   module: [
     (import
-      name: (dotted_identifier (identifier) @module))
+      name: (dotted_escaped_identifier (identifier) @module))
     (aliased_import
-      name: (dotted_identifier (identifier) @module)
-      alias: (identifier) @module)
-    (relative_import
-      name: (dotted_identifier (identifier) @module))
-    (relative_aliased_import
-      name: ((dotted_identifier (identifier) @module))?
+      name: (dotted_escaped_identifier (identifier) @module)
       alias: (identifier) @module)
   ])
 
@@ -637,9 +661,9 @@
 (
   (selective_import_statement "import" [
     (import
-      name: (dotted_identifier (identifier) @type.builtin))
+      name: (dotted_escaped_identifier (identifier) @type.builtin))
     (aliased_import
-      name: (dotted_identifier (identifier) @type.builtin))
+      name: (dotted_escaped_identifier (identifier) @type.builtin))
   ])
   (#any-of? @type.builtin
     "SIMD"

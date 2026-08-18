@@ -12,9 +12,23 @@
     }
   ],
   "metadata": {
-    "version": "0.1.0",
+    "version": "1.0.4",
     "license": "MIT",
     "description": "Mojo grammar for tree-sitter (self-hosted in mojo.nvim, vendored from dmitry-salin/tree-sitter-mojo)",
+    "authors": [
+      {
+        "name": "Max Brunsfeld",
+        "email": "maxbrunsfeld@gmail.com"
+      },
+      {
+        "name": "Amaan Qureshi",
+        "email": "amaanq12@gmail.com"
+      },
+      {
+        "name": "Dmitry Salin",
+        "email": "dmitry.salin@gmail.com"
+      }
+    ],
     "links": {
       "repository": "https://github.com/Sarctiann/mojo.nvim",
       "upstream": "https://github.com/dmitry-salin/tree-sitter-mojo"

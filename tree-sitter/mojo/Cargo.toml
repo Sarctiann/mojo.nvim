@@ -1,7 +1,7 @@
 [package]
 name = "tree-sitter-mojo"
 description = "Mojo grammar for tree-sitter"
-version = "0.25.0"
+version = "1.0.4"
 authors = [
   "Max Brunsfeld <maxbrunsfeld@gmail.com>",
   "Dmitry Salin <dmitry.salin@gmail.com>",

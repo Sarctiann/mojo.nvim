@@ -1,5 +1,7 @@
 # Design: Update Self-Hosted Tree-Sitter Grammar for Mojo 1.0
 
+**Superseded by:** `2026-07-19-adopt-dmitry-salin-grammar-design.md`
+
 **Date:** 2026-06-07
 **Status:** Implemented and verified
 **Branch:** `feat/self-host-treesitter-parser`
