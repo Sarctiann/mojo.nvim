@@ -186,7 +186,7 @@ nvim --headless -c "luafile tests/<test_file>.lua" -c "qa!"
 **Existing tests:** `tests/test_queries.lua` (treesitter), `tests/test_detect.lua` (env),
 `tests/test_lualine.lua` (statusline), `tests/test_commands.lua` (commands),
 `tests/test_sdk_path.lua` (SDK path), `tests/test_status.lua` (status),
-`tests/test_version.lua` (version).
+`tests/test_version.lua` (version), `tests/test_dap.lua` (debug adapters + native fallback).
 
 **Test pattern:**
 

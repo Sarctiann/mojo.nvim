@@ -7,10 +7,10 @@ using the sample projects in `tests/mojo_samples/`.
 
 - Neovim 0.10+
 - [mojo.nvim] installed and configured
-- Mojo SDK 1.0.0b2+
+- Mojo SDK 1.0.0+
 - For **pixi**: [`pixi`] installed
 - For **uv**: [`uv`] installed
-- For **dbg_dap**: [nvim-dap] + DAP binary (`mojo-lldb-dap` on pixi, `lldb-dap` on uv)
+- For **dbg_dap**: [nvim-dap] + DAP binary (`_mojo-lldb-dap` on pixi, `lldb-dap` on uv)
 
 ## Test Projects
 

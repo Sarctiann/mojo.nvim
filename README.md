@@ -63,11 +63,28 @@ Detects Pixi (`pixi.toml` / `.pixi/`) and virtualenv (`.venv/`) projects and act
 
 ### Treesitter
 
-Registers the self-hosted Mojo parser grammar with `nvim-treesitter`. The grammar files live in `tree-sitter/mojo/` — no external parser repo required — and are vendored from [dmitry-salin/tree-sitter-mojo](https://github.com/dmitry-salin/tree-sitter-mojo), which tracks the current Mojo [nightly language reference](https://mojolang.org/nightly/docs/reference/). Automatically checks for grammar updates and recompiles when needed, with `:Mojo rebuild` (or `:MojoRebuildParser` when `commands.spread = true`) for manual rebuilds.
+Registers the self-hosted Mojo parser grammar with `nvim-treesitter`. The grammar files live in `tree-sitter/mojo/` — no external parser repo required — and are vendored from [dmitry-salin/tree-sitter-mojo](https://github.com/dmitry-salin/tree-sitter-mojo), which tracks the current [Mojo language reference](https://mojolang.org/docs/reference/) (synced at upstream v1.0.4). Automatically checks for grammar updates and recompiles when needed, with `:Mojo rebuild` (or `:MojoRebuildParser` when `commands.spread = true`) for manual rebuilds.
 
 ### LSP
 
 Configures `mojo-lsp-server` via Neovim's native `vim.lsp.config` / `vim.lsp.enable` (0.11+) with environment-aware binary resolution (finds the binary in the active Pixi/venv environment). Supports custom root markers for project detection. No `nvim-lspconfig` dependency.
+
+#### Outline view
+
+The LSP server publishes document symbols (structs, functions, traits, methods, etc.), which Neovim surfaces as an **outline view**. mojo.nvim enables this automatically — no extra setup is required beyond the LSP being active. Wire it to your preferred UI:
+
+```lua
+-- Native outline (built-in)
+vim.keymap.set("n", "<leader>so", vim.lsp.buf.document_symbol, { desc = "Mojo outline" })
+
+-- telescope.nvim
+vim.keymap.set("n", "<leader>so", require("telescope.builtin").lsp_document_symbols, {})
+
+-- trouble.nvim
+vim.keymap.set("n", "<leader>so", function() require("trouble").open("symbols") end, {})
+```
+
+The outline reflects whatever the `mojo-lsp-server` reports for the current file.
 
 ### Format
 
@@ -79,7 +96,7 @@ Auto-activates the project environment in new shell terminal buffers. Detects sh
 
 ### Completion
 
-Provides keyword autocompletion for Mojo-specific keywords (54), builtin functions (42), standard library types (46), and snippets (13). Integrates with nvim-cmp and blink.cmp via dedicated adapters. Completion is context-aware — it defers to LSP completions after `.` and `:`.
+Provides keyword autocompletion for Mojo-specific keywords (54), builtin functions (42), standard library types (52), and snippets (14). Integrates with nvim-cmp and blink.cmp via dedicated adapters. Completion is context-aware — it defers to LSP completions after `.` and `:`.
 
 ### Run
 
@@ -97,7 +114,9 @@ Native debug (`:MojoDebugNative`) opens a terminal with LLDB keymaps: `r` (run),
 
 DAP debug (`:MojoDebugDap`) requires [nvim-dap](https://github.com/mfussenegger/nvim-dap) and provides four launch configurations: Debug Mojo File, Debug Mojo File (with args), Debug Binary, and Attach to Process.
 
-**macOS note:** The plugin automatically removes quarantine and re-signs debug adapter binaries (`mojo-lldb-dap` / `lldb-dap`) on macOS. Both native and DAP debugging work on macOS with pixi and uv projects.
+**macOS note:** The plugin automatically removes quarantine and re-signs debug adapter binaries (`mojo-lldb-dap` / `_mojo-lldb-dap` / `lldb-dap`) on macOS. Both native and DAP debugging work on macOS with pixi and uv projects.
+
+Mojo's LLDB data formatters (`lldbDataFormatters.py` + `mlirDataFormatters.py`) are loaded automatically for both the DAP and native debug backends by detecting the `lldb-visualizers/` directory in the active pixi or venv environment — no manual setup required. On the native backend the plugin probes LLDB for Python scripting support (`lldb --batch -o 'script pass'`); Mojo's `mojo-lldb` is typically built without it, so the plugin falls back to a system `lldb` that has it so the formatters still load — skipping only when no Python-capable LLDB exists, keeping the session clean.
 
 ### Indentation
 
@@ -110,7 +129,7 @@ Commands are configured via the `commands` option. By default only the master `:
 | Command              | Description                                                |
 | -------------------- | ---------------------------------------------------------- |
 | `:Mojo {subcommand}` | Master command with tab-completion (see below)             |
-| `:MojoMenu`          | Open floating actions menu (restart/stop LSP, refresh SDK) |
+| `:MojoMenu`          | Open floating actions menu (restart/stop LSP, refresh SDK, cache location, clear cache) |
 | `:MojoRefreshSDK`    | Clear SDK cache and re-detect environment                  |
 | `:MojoRestartLSP`    | Restart Mojo LSP server                                    |
 | `:MojoStopLSP`       | Stop Mojo LSP server                                       |
@@ -120,8 +139,10 @@ Commands are configured via the `commands` option. By default only the master `:
 | `:MojoDebugNative`   | Debug via `mojo-lldb` in terminal (dbg_native)          |
 | `:MojoDebugDap`      | Debug via nvim-dap + mojo-lldb-dap (dbg_dap)             |
 | `:MojoRebuildParser` | Manually rebuild the self-hosted tree-sitter Mojo parser   |
+| `:MojoCacheLocation` | Print the Mojo cache location (via `mojo --print-cache-location`) |
+| `:MojoClearCache`    | Clear the Mojo cache, with a confirmation prompt (via `mojo --clear-cache`) |
 
-`:Mojo` subcommands: `menu`, `run`, `dedicated`, `debug`, `debug-native`, `debug-dap`, `restart`, `stop`, `refresh`, `rebuild`, `keymaps`, `help`. Press `<Tab>` after `:Mojo ` to cycle through them.
+`:Mojo` subcommands: `menu`, `run`, `dedicated`, `debug`, `debug-native`, `debug-dap`, `restart`, `stop`, `refresh`, `rebuild`, `cache-location`, `clear-cache`, `keymaps`, `help`. Press `<Tab>` after `:Mojo ` to cycle through them.
 
 ## Keymaps
 
@@ -135,7 +156,7 @@ Default keymaps for Mojo buffers. These can be overridden or disabled per-keymap
 | `r` `n` `s` `c` `v`  | Normal           | Debug terminal    | LLDB: run, next, step, continue, frame var    |
 | `b`                  | Normal           | Debug terminal    | Re-sync breakpoints from editor signs         |
 
-The `:MojoMenu` floating window also has numbered keymaps `1`, `2`, `3` mapped to each action, and `q` / `<Esc>` to close.
+The `:MojoMenu` floating window also has numbered keymaps `1`..`N` for each action (restart/stop LSP, refresh SDK, cache location, clear cache), and `q` / `<Esc>` to close.
 
 ## Statusline
 
@@ -172,7 +193,7 @@ require("mojo").setup({
     color = "#ff9e64",        -- MojoText / MojoSep color
     icon_color = "#ff6f00",   -- MojoIcon color
     show_env_name = true,     -- show pixi/venv environment name
-    show_sdk_version = true,  -- show SDK version (e.g. "1.0.0b2")
+    show_sdk_version = true,  -- show SDK version (e.g. "1.0.0")
     show_lsp = true,          -- show LSP status indicator
     show_fmt = true,          -- show formatter status indicator
     show_dbg = true,          -- show debugger status indicator
@@ -327,6 +348,7 @@ All features are enabled by default. Pass `enabled = false` to disable any featu
     enabled = true,
     auto_scroll = true,
     auto_backend = nil, -- nil = auto, "native", "dap"
+    build_args = nil, -- extra args passed to `mojo build` during debug compile
     keymaps = {
       toggle_breakpoint = "<leader>db",
       clear_breakpoints = "<leader>dB",
