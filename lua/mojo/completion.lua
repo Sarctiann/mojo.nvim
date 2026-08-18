@@ -55,7 +55,7 @@ M.keywords = {
 	"borrowed",
 	"inout",
 	"mut",
-	"read",
+	"imm",
 	"ref",
 	"out",
 	"deinit",
@@ -66,7 +66,7 @@ M.keywords = {
 	"None",
 }
 
---- Audited against Mojo stdlib tag mojo/v1.0.0b2 (std/prelude/__init__.mojo).
+--- Audited against Mojo stdlib tag mojo/v1.0.0 (std/prelude/__init__.mojo).
 --- Python-only names dropped; capitalized types go in M.types.
 --- @type string[]
 M.builtins = {
@@ -135,21 +135,28 @@ M.types = {
 	"Dict",
 	"Set",
 	"Tuple",
-	"Option",
+	"Optional",
 	"Result",
 	"Error",
 	"Regex",
 	"Path",
 	"File",
 	"SIMD",
+	"SIMDLength",
 	"DType",
 	"Address",
 	"Pointer",
+	"MutPointer",
+	"ImmPointer",
+	"OptionalPointer",
 	"Reference",
 	"Span",
+	"Array",
+	"StringSpan",
+	"StringDict",
+	"Deinitable",
 	"Vector",
 	"DynamicVector",
-	"StringSlice",
 	"StringRef",
 	"BinaryHeap",
 	"WeakPointer",
@@ -182,6 +189,7 @@ M.snippets = {
 	{ trigger = "vdef", body = "var ${1:name}: ${2:Type} = ${3:value}", description = "var definition" },
 	{ trigger = "ldef", body = "let ${1:name}: ${2:Type} = ${3:value}", description = "let definition" },
 	{ trigger = "alias", body = "alias ${1:Name} = ${2:Type}", description = "alias declaration" },
+	{ trigger = "dinit", body = "def __deinit__(self):\n\t$0", description = "destructor definition" },
 	{ trigger = "ifl", body = "if ${1:cond}:\n\t$0", description = "if block" },
 	{ trigger = "elfl", body = "elif ${1:cond}:\n\t$0", description = "elif block" },
 	{ trigger = "ell", body = "else:\n\t$0", description = "else block" },
