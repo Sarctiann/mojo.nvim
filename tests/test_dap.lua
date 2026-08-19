@@ -12,6 +12,11 @@ local function pass(msg)
 	print("  PASS: " .. msg)
 end
 
+-- libMojoLLDB extension: .dylib on macOS, .so elsewhere.
+local function lldb_plugin_ext()
+	return vim.fn.has("mac") == 1 and "dylib" or "so"
+end
+
 local dap = require("mojo.adapters.dap")
 
 -- Ensure config defaults (incl. debug.search_for) are populated so binary
@@ -23,7 +28,7 @@ local env_dir = vim.fn.tempname()
 os.execute("mkdir -p " .. env_dir .. "/lib/lldb-visualizers")
 os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/lldbDataFormatters.py")
 os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/mlirDataFormatters.py")
-os.execute("touch " .. env_dir .. "/lib/libMojoLLDB.dylib")
+os.execute("touch " .. env_dir .. "/lib/libMojoLLDB." .. lldb_plugin_ext())
 
 local detected = {
 	type = "pixi",
@@ -50,7 +55,7 @@ local mod_lib = venv_dir .. "/lib/python3.12/site-packages/modular/lib"
 os.execute("mkdir -p " .. mod_lib .. "/lldb-visualizers")
 os.execute("touch " .. mod_lib .. "/lldb-visualizers/lldbDataFormatters.py")
 os.execute("touch " .. mod_lib .. "/lldb-visualizers/mlirDataFormatters.py")
-os.execute("touch " .. mod_lib .. "/libMojoLLDB.so")
+os.execute("touch " .. mod_lib .. "/libMojoLLDB." .. lldb_plugin_ext())
 
 local venv_detected = {
 	type = "venv",
@@ -144,11 +149,11 @@ do
 	os.execute("mkdir -p " .. env_dir .. "/lib/lldb-visualizers")
 	os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/lldbDataFormatters.py")
 	os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/mlirDataFormatters.py")
-	os.execute("touch " .. env_dir .. "/lib/libMojoLLDB.dylib")
+	os.execute("touch " .. env_dir .. "/lib/libMojoLLDB." .. lldb_plugin_ext())
 	os.execute("mkdir -p " .. env_dir .. "/bin")
 	os.execute("touch " .. env_dir .. "/bin/lldb-dap")
 
-	package.loaded["dap"] = { adapters = {}, configurations = {} }
+	package.loaded["dap"] = { adapters = {}, configurations = {}, utils = { pick_process = function() end } }
 	local env = require("mojo.env")
 	local orig_dap = env.get_dap_cmd
 	env.get_dap_cmd = function()
@@ -202,11 +207,11 @@ do
 	os.execute("mkdir -p " .. env_dir .. "/lib/lldb-visualizers")
 	os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/lldbDataFormatters.py")
 	os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/mlirDataFormatters.py")
-	os.execute("touch " .. env_dir .. "/lib/libMojoLLDB.dylib")
+	os.execute("touch " .. env_dir .. "/lib/libMojoLLDB." .. lldb_plugin_ext())
 	os.execute("mkdir -p " .. env_dir .. "/bin")
 	os.execute("touch " .. env_dir .. "/bin/_mojo-lldb-dap")
 
-	package.loaded["dap"] = { adapters = {}, configurations = {} }
+	package.loaded["dap"] = { adapters = {}, configurations = {}, utils = { pick_process = function() end } }
 	local env = require("mojo.env")
 	local orig_dap = env.get_dap_cmd
 	env.get_dap_cmd = function()
@@ -263,7 +268,7 @@ do
 	os.execute("mkdir -p " .. env_dir .. "/bin")
 	os.execute("touch " .. env_dir .. "/bin/lldb-dap")
 
-	package.loaded["dap"] = { adapters = {}, configurations = {} }
+	package.loaded["dap"] = { adapters = {}, configurations = {}, utils = { pick_process = function() end } }
 	local env = require("mojo.env")
 	local orig_dap = env.get_dap_cmd
 	env.get_dap_cmd = function()
@@ -529,17 +534,27 @@ do
 	require("mojo.adapters.dap").find_visualizers = orig_fv
 end
 
--- Integration: real pixi + uv samples must both resolve env, visualizers, native cmd
-do	local detect = require("mojo.env.detect")
+-- Integration: real pixi + uv samples must both resolve env, visualizers, native cmd.
+-- SKIP (not FAIL) when the fixture env is not installed, since .pixi/.venv are
+-- gitignored and require `pixi install` / `uv sync`. The pixi fixture pins
+-- `osx-arm64`, so SKIP it on non-macOS.
+do
+	local detect = require("mojo.env.detect")
 	local env = require("mojo.env")
 	local orig_cwd = vim.fn.getcwd()
 	local samples = {
-		{ dir = "tests/mojo_samples/test-mojo-pixi", type = "pixi" },
-		{ dir = "tests/mojo_samples/test-mojo-uv", type = "venv" },
+		{ dir = "tests/mojo_samples/test-mojo-pixi", type = "pixi", env_bin = ".pixi/envs/default/bin/mojo" },
+		{ dir = "tests/mojo_samples/test-mojo-uv", type = "venv", env_bin = ".venv/bin/mojo" },
 	}
 	for _, spec in ipairs(samples) do
 		local full = vim.fs.joinpath(orig_cwd, spec.dir)
-		if vim.uv.fs_stat(full) then
+		if not vim.uv.fs_stat(full) then
+			print("  SKIP: sample not present: " .. spec.dir)
+		elseif not vim.uv.fs_stat(vim.fs.joinpath(full, spec.env_bin)) then
+			print("  SKIP: env not installed (run `pixi install` / `uv sync`): " .. spec.dir)
+		elseif spec.type == "pixi" and vim.fn.has("mac") ~= 1 then
+			print("  SKIP: pixi sample pins osx-arm64, not runnable on this platform: " .. spec.dir)
+		else
 			-- clear detect cache so the cwd change re-detects
 			for k in pairs(detect._cache()) do
 				detect._cache()[k] = nil
@@ -565,8 +580,6 @@ do	local detect = require("mojo.env.detect")
 			else
 				fail(string.format("%s: expected type %s, got %s", spec.dir, spec.type, det and det.type or "nil"))
 			end
-		else
-			print("  SKIP: sample not present: " .. spec.dir)
 		end
 	end
 	vim.api.nvim_set_current_dir(orig_cwd)

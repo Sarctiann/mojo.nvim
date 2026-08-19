@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Mojo debug test project (uv)"
 requires-python = ">=3.12"
 dependencies = [
-    "mojo>=1.0.0b2",
+    "mojo>=1.0.0",
 ]
 
 [build-system]
