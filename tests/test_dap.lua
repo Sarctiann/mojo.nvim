@@ -311,13 +311,15 @@ do
 	end
 end
 
--- Native fallback: when mojo-lldb lacks Python scripting, prefer a system lldb
+-- Native fallback: when mojo-lldb lacks Python scripting, prefer a system lldb;
+-- pick_native_lldb returns (bin, supports_script) and the probe uses a timeout.
 do
 	local native = require("mojo.debug.native")
 	local env = require("mojo.env")
 	local orig_get = env.get_dbg_native_cmd
 	local orig_exepath = vim.fn.exepath
 	local orig_system = vim.system
+	local probe_opts = nil
 
 	-- mojo-lldb: no scripting; system lldb: has scripting
 	env.get_dbg_native_cmd = function()
@@ -329,7 +331,8 @@ do
 		end
 		return ""
 	end
-	vim.system = function(args)
+	vim.system = function(args, opts)
+		probe_opts = opts
 		local bin = args[1]
 		local stderr = bin:match("mojo%-lldb") and "Embedded script interpreter unavailable" or ""
 		return { wait = function()
@@ -337,24 +340,64 @@ do
 		end }
 	end
 
-	local chosen = native.pick_native_lldb()
-	if chosen == "/usr/bin/lldb" then
-		pass("pick_native_lldb falls back to system lldb when mojo-lldb lacks scripting")
+	local chosen, supports = native.pick_native_lldb()
+	if chosen == "/usr/bin/lldb" and supports == true then
+		pass("pick_native_lldb falls back to system lldb + returns scripting=true")
 	else
-		fail("pick_native_lldb returned " .. tostring(chosen) .. " (expected /usr/bin/lldb)")
+		fail(
+			string.format(
+				"pick_native_lldb returned %s/%s (expected /usr/bin/lldb/true)",
+				tostring(chosen),
+				tostring(supports)
+			)
+		)
+	end
+	if type(probe_opts) == "table" and type(probe_opts.timeout) == "number" then
+		pass("pick_native_lldb probe sets a numeric timeout")
+	else
+		fail("pick_native_lldb probe missing timeout: " .. vim.inspect(probe_opts))
 	end
 
 	-- mojo-lldb with scripting: prefer it
-	vim.system = function()
+	vim.system = function(_, opts)
+		probe_opts = opts
 		return { wait = function()
 			return { stdout = "", stderr = "" }
 		end }
 	end
-	local chosen2 = native.pick_native_lldb()
-	if chosen2 == "/env/bin/mojo-lldb" then
-		pass("pick_native_lldb prefers mojo-lldb when it supports scripting")
+	local chosen2, supports2 = native.pick_native_lldb()
+	if chosen2 == "/env/bin/mojo-lldb" and supports2 == true then
+		pass("pick_native_lldb prefers mojo-lldb + returns scripting=true")
 	else
-		fail("pick_native_lldb returned " .. tostring(chosen2) .. " (expected /env/bin/mojo-lldb)")
+		fail(
+			string.format(
+				"pick_native_lldb returned %s/%s (expected /env/bin/mojo-lldb/true)",
+				tostring(chosen2),
+				tostring(supports2)
+			)
+		)
+	end
+
+	-- neither supports scripting: returns primary with scripting=false
+	vim.system = function()
+		return { wait = function()
+			return { stdout = "", stderr = "Embedded script interpreter unavailable" }
+		end }
+	end
+	vim.fn.exepath = function()
+		return ""
+	end
+	local chosen3, supports3 = native.pick_native_lldb()
+	if chosen3 == "/env/bin/mojo-lldb" and supports3 == false then
+		pass("pick_native_lldb returns primary + scripting=false when nothing supports scripting")
+	else
+		fail(
+			string.format(
+				"pick_native_lldb returned %s/%s (expected /env/bin/mojo-lldb/false)",
+				tostring(chosen3),
+				tostring(supports3)
+			)
+		)
 	end
 
 	env.get_dbg_native_cmd = orig_get

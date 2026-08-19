@@ -30,7 +30,7 @@ local function lldb_supports_scripting(bin)
 	if not bin or bin == "" then
 		return false
 	end
-	local ok, handle = pcall(vim.system, { bin, "--batch", "-o", "script pass" }, { text = true })
+	local ok, handle = pcall(vim.system, { bin, "--batch", "-o", "script pass" }, { text = true, timeout = 10000 })
 	if not ok or not handle then
 		return false
 	end
@@ -48,12 +48,12 @@ end
 --- back to a system `lldb` that supports scripting so Mojo data formatters
 --- can still be loaded. If no scripting-capable binary exists, returns the
 --- primary `mojo-lldb` (formatters are then skipped gracefully).
---- @return string|nil
+--- @return string|nil, boolean  (bin, supports_script)
 function M.pick_native_lldb()
 	local env = require("mojo.env")
 	local primary = env.get_dbg_native_cmd()
 	if primary and lldb_supports_scripting(primary) then
-		return primary
+		return primary, true
 	end
 	local sys = vim.fn.exepath("lldb")
 	if sys and sys ~= "" and lldb_supports_scripting(sys) then
@@ -61,9 +61,9 @@ function M.pick_native_lldb()
 			"mojo.nvim: mojo-lldb lacks Python scripting; using " .. sys .. " so data formatters load",
 			vim.log.levels.INFO
 		)
-		return sys
+		return sys, true
 	end
-	return primary
+	return primary, false
 end
 
 --- Attempt to import a Mojo LLDB formatter script.
@@ -99,16 +99,13 @@ function M.start()
 	-- Choose the native LLDB binary. Prefers the environment's mojo-lldb, but
 	-- falls back to a system lldb with Python scripting so Mojo data formatters
 	-- can load (Mojo's bundled mojo-lldb is often built without scripting).
-	local lldb_bin = M.pick_native_lldb()
+	-- pick_native_lldb also returns the scripting flag, avoiding a second probe.
+	local lldb_bin, supports_script = M.pick_native_lldb()
 	if not lldb_bin then
 		vim.notify("mojo.nvim: mojo-lldb not found — cannot start native debug", vim.log.levels.ERROR)
 		return
 	end
-
-	-- Probe whether this LLDB build supports the embedded Python interpreter.
-	-- Mojo's mojo-lldb is often built without it, in which case data formatters
-	-- cannot be loaded; probing avoids sending noisy failing import commands.
-	native_supports_script = lldb_supports_scripting(lldb_bin)
+	native_supports_script = supports_script
 
 	-- Quarantine check (only meaningful for the mojo binary, kept for parity)
 	if vim.fn.has("mac") == 1 and mojo:sub(1, 1) == "/" then
