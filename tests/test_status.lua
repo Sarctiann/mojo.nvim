@@ -157,6 +157,80 @@ else
 	fail(string.format("fmt_status() expected 'unavailable', got %q", fs))
 end
 
+-- Clear Cache action passes -f and timeout, guards version < 1.0.0b2
+print("--- Clear Cache action ---")
+do
+	local env = require("mojo.env")
+	local version = require("mojo.env.version")
+	local orig_mojo = env.get_mojo_cmd
+	local orig_confirm = vim.fn.confirm
+	local orig_system = vim.system
+	local orig_version = version.get_version
+	local calls = {}
+
+	env.get_mojo_cmd = function()
+		return "/bin/mojo"
+	end
+	vim.fn.confirm = function()
+		return 1 -- Yes
+	end
+	vim.system = function(cmd, opts)
+		table.insert(calls, { cmd = cmd, opts = opts })
+		return { wait = function()
+			return { code = 0, stdout = "", stderr = "" }
+		end }
+	end
+
+	-- Case 1: version >= 1.0.0b2 (stable 1.0.0 allowed) -> runs with -f + timeout
+	version.get_version = function()
+		return "1.0.0"
+	end
+	calls = {}
+	status.actions["Clear Cache"]()
+	if #calls == 1 then
+		local c = calls[1]
+		local has_f = false
+		local has_clear = false
+		for _, a in ipairs(c.cmd) do
+			if a == "-f" then
+				has_f = true
+			end
+			if a == "--clear-cache" then
+				has_clear = true
+			end
+		end
+		if has_f and has_clear then
+			pass("Clear Cache passes --clear-cache with -f")
+		else
+			fail("Clear Cache missing -f or --clear-cache: " .. vim.inspect(c.cmd))
+		end
+		if type(c.opts.timeout) == "number" then
+			pass("Clear Cache sets a numeric wait timeout")
+		else
+			fail("Clear Cache missing timeout in vim.system opts: " .. vim.inspect(c.opts))
+		end
+	else
+		fail("Clear Cache should run mojo once (got " .. #calls .. " calls)")
+	end
+
+	-- Case 2: version < 1.0.0b2 (1.0.0b1) -> blocked, no command issued
+	version.get_version = function()
+		return "1.0.0b1"
+	end
+	calls = {}
+	status.actions["Clear Cache"]()
+	if #calls == 0 then
+		pass("Clear Cache blocked for Mojo < 1.0.0b2")
+	else
+		fail("Clear Cache should NOT run on 1.0.0b1 (got " .. #calls .. " calls)")
+	end
+
+	env.get_mojo_cmd = orig_mojo
+	vim.fn.confirm = orig_confirm
+	vim.system = orig_system
+	version.get_version = orig_version
+end
+
 -- Summary
 print(string.rep("=", 60))
 print(string.format("Total failures: %d", total_errors))

@@ -137,6 +137,31 @@ function M.dbg_icon()
 	return "󰅖"
 end
 
+--- Compare two Mojo version strings, treating a prerelease (e.g. `1.0.0b1`)
+--- as lower than the corresponding stable (`1.0.0`). Returns true when `a` is
+--- strictly below `b`.
+--- @param a string
+--- @param b string
+--- @return boolean
+function M._version_below(a, b)
+	local function parts(v)
+		local num = v:match("^(%d+%.%d+%.%d+)")
+		if not num then
+			return { 0, 0, 0, math.huge }
+		end
+		local maj, min, pat = num:match("^(%d+)%.(%d+)%.(%d+)")
+		local beta = v:match("^%d+%.%d+%.%d+b(%d+)")
+		return { tonumber(maj), tonumber(min), tonumber(pat), beta and tonumber(beta) or math.huge }
+	end
+	local pa, pb = parts(a), parts(b)
+	for i = 1, 4 do
+		if pa[i] ~= pb[i] then
+			return pa[i] < pb[i]
+		end
+	end
+	return false
+end
+
 --- @param state string
 --- @return string|nil
 function M.status_color(state)
@@ -330,11 +355,21 @@ M.actions = {
 			vim.notify("mojo.nvim: mojo binary not found", vim.log.levels.ERROR)
 			return
 		end
+		-- --clear-cache only exists from 1.0.0b2; on older builds the flag is
+		-- unknown and mojo prints "error: no input file provided".
+		local ver = require("mojo.env.version").get_version()
+		if ver and M._version_below(ver, "1.0.0b2") then
+			vim.notify("mojo.nvim: --clear-cache requires Mojo >= 1.0.0b2 (found " .. ver .. ")",
+				vim.log.levels.WARN)
+			return
+		end
 		local choice = vim.fn.confirm("Clear the Mojo cache?", "&Yes\n&No", 2)
 		if choice ~= 1 then
 			return
 		end
-		local result = vim.system({ mojo, "--clear-cache" }, { text = true }):wait()
+		-- We already confirmed; pass -f so mojo does not re-prompt into a pipe
+		-- nobody answers, and bound the wait so a hang cannot block Neovim.
+		local result = vim.system({ mojo, "--clear-cache", "-f" }, { text = true, timeout = 30000 }):wait()
 		if result.code ~= 0 then
 			vim.notify("mojo.nvim: failed to clear cache: " .. (result.stderr or ""):gsub("\n", " "),
 				vim.log.levels.ERROR)
