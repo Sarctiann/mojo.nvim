@@ -534,6 +534,38 @@ do
 	require("mojo.adapters.dap").find_visualizers = orig_fv
 end
 
+-- Native _on_prompt_timeout: when the (lldb) prompt never appears, notify the
+-- user that breakpoints were not synced, and do NOT call sync_all.
+do
+	local native = require("mojo.debug.native")
+	local sync_called = 0
+	local orig_sync = require("mojo.debug.breakpoints").sync_all
+	require("mojo.debug.breakpoints").sync_all = function()
+		sync_called = sync_called + 1
+	end
+	local orig_notify = vim.notify
+	local notified = nil
+	vim.notify = function(msg, level)
+		notified = { msg = msg, level = level }
+	end
+
+	native._on_prompt_timeout()
+
+	vim.notify = orig_notify
+	require("mojo.debug.breakpoints").sync_all = orig_sync
+
+	if notified and notified.msg:find("breakpoints were not synced") then
+		pass("_on_prompt_timeout notifies user that breakpoints were not synced")
+	else
+		fail("_on_prompt_timeout did not notify: " .. vim.inspect(notified))
+	end
+	if sync_called == 0 then
+		pass("_on_prompt_timeout does not call sync_all")
+	else
+		fail("_on_prompt_timeout should not call sync_all (got " .. sync_called .. " calls)")
+	end
+end
+
 -- Integration: real pixi + uv samples must both resolve env, visualizers, native cmd.
 -- SKIP (not FAIL) when the fixture env is not installed, since .pixi/.venv are
 -- gitignored and require `pixi install` / `uv sync`. The pixi fixture pins

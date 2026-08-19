@@ -147,9 +147,15 @@ function M._wait_for_prompt()
 	local elapsed = 0
 	timer:start(100, 200, vim.schedule_wrap(function()
 		elapsed = elapsed + 1
-		if not M.is_active() or elapsed > 50 then
+		if not M.is_active() then
 			timer:stop()
 			timer:close()
+			return
+		end
+		if elapsed > 50 then
+			timer:stop()
+			timer:close()
+			M._on_prompt_timeout()
 			return
 		end
 		local buf = term_buf
@@ -197,6 +203,15 @@ function M._on_prompt()
 		M._import_formatter(vim.fs.joinpath(visualizers, "mlirDataFormatters.py"))
 	end
 	require("mojo.debug.breakpoints").sync_all()
+end
+
+--- Handle the case where the `(lldb)` prompt never appears within the wait
+--- window: breakpoints were never synced, so tell the user.
+function M._on_prompt_timeout()
+	vim.notify(
+		"mojo.nvim: LLDB prompt not detected; breakpoints were not synced",
+		vim.log.levels.WARN
+	)
 end
 
 local ATTACH_ERROR_MSG = "Not allowed to attach to process"

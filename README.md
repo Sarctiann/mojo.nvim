@@ -65,6 +65,8 @@ Detects Pixi (`pixi.toml` / `.pixi/`) and virtualenv (`.venv/`) projects and act
 
 Registers the self-hosted Mojo parser grammar with `nvim-treesitter`. The grammar files live in `tree-sitter/mojo/` — no external parser repo required — and are vendored from [dmitry-salin/tree-sitter-mojo](https://github.com/dmitry-salin/tree-sitter-mojo), which tracks the current [Mojo language reference](https://mojolang.org/docs/reference/) (synced at upstream v1.0.4). Automatically checks for grammar updates and recompiles when needed, with `:Mojo rebuild` (or `:MojoRebuildParser` when `commands.spread = true`) for manual rebuilds.
 
+> **Upgrading note:** existing installs may show transient tree-sitter parse errors on the new Mojo 1.0 lambda syntax until `stale_parser()` detects the grammar change and triggers a rebuild. Rebuild manually with `:MojoRebuildParser` if you hit this right after upgrading.
+
 ### LSP
 
 Configures `mojo-lsp-server` via Neovim's native `vim.lsp.config` / `vim.lsp.enable` (0.11+) with environment-aware binary resolution (finds the binary in the active Pixi/venv environment). Supports custom root markers for project detection. No `nvim-lspconfig` dependency.
