@@ -35,6 +35,11 @@ local function lldb_supports_scripting(bin)
 		return false
 	end
 	local result = handle:wait()
+	-- A timed-out or otherwise failed probe (code 124 on timeout) must not be
+	-- mistaken for a scripting-capable LLDB; only a clean exit counts.
+	if result.code ~= 0 then
+		return false
+	end
 	local out = (result.stdout or "") .. "\n" .. (result.stderr or "")
 	if out:find("script interpreter unavailable") or out:find("without scripting language support") then
 		return false
