@@ -231,6 +231,38 @@ do
 	version.get_version = orig_version
 end
 
+-- show_menu computes width from items (not hardcoded 20)
+print("--- show_menu width ---")
+do
+	local orig_open = vim.api.nvim_open_win
+	local orig_keymap = vim.api.nvim_buf_set_keymap
+	local orig_lines = vim.api.nvim_buf_set_lines
+	local opened = nil
+	local keymap_calls = {}
+
+	vim.api.nvim_open_win = function(_, _, opts)
+		opened = opts
+		return 1000
+	end
+	vim.api.nvim_buf_set_keymap = function(_, mode, lhs, rhs, opts)
+		table.insert(keymap_calls, { mode = mode, lhs = lhs, rhs = rhs, opts = opts })
+	end
+	vim.api.nvim_buf_set_lines = function() end
+
+	status.show_menu()
+
+	vim.api.nvim_open_win = orig_open
+	vim.api.nvim_buf_set_keymap = orig_keymap
+	vim.api.nvim_buf_set_lines = orig_lines
+
+	-- Longest item: "   [1] Cache Location" = 21 chars; menu must fit it
+	if opened and opened.width and opened.width >= 21 then
+		pass("show_menu width computed from items (" .. opened.width .. ")")
+	else
+		fail("show_menu width too small: " .. (opened and tostring(opened.width) or "nil"))
+	end
+end
+
 -- Summary
 print(string.rep("=", 60))
 print(string.format("Total failures: %d", total_errors))

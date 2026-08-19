@@ -385,39 +385,44 @@ function M.show_menu()
 	table.sort(items)
 
 	local lines = {}
+	local width = 0
 	for i, item in ipairs(items) do
-		table.insert(lines, string.format("   [%d] %s", i, item))
+		local line = string.format("   [%d] %s", i, item)
+		table.insert(lines, line)
+		if #line > width then
+			width = #line
+		end
 	end
+	width = math.max(width, 20) + 2
 
-  local width = 20
-  local height = #lines
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-  vim.bo[buf].filetype = "mojo-prompt"
-  vim.bo[buf].modifiable = false
+	local height = #lines
+	local buf = vim.api.nvim_create_buf(false, true)
+	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+	vim.bo[buf].filetype = "mojo-prompt"
+	vim.bo[buf].modifiable = false
 
-  vim.api.nvim_open_win(buf, true, {
-    relative = "editor",
-    width = width,
-    height = height,
-    col = math.floor((vim.o.columns - width) / 2),
-    row = math.floor((vim.o.lines - height) / 2),
-    style = "minimal",
-    border = "rounded",
-    title = " Press [ 1 .. " .. #items .. " ]",
-    title_pos = "center",
-  })
+	vim.api.nvim_open_win(buf, true, {
+		relative = "editor",
+		width = width,
+		height = height,
+		col = math.floor((vim.o.columns - width) / 2),
+		row = math.floor((vim.o.lines - height) / 2),
+		style = "minimal",
+		border = "rounded",
+		title = " Press [ 1 .. " .. #items .. " ]",
+		title_pos = "center",
+	})
 
-  for i = 1, math.min(#items, 9) do
-    vim.api.nvim_buf_set_keymap(buf, "n", tostring(i), "", {
-      callback = function()
-        M._close_and_run(items[i])
-      end,
-      noremap = true,
-      silent = true,
-    })
-  end
-  vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
+	for i = 1, math.min(#items, 9) do
+		vim.api.nvim_buf_set_keymap(buf, "n", tostring(i), "", {
+			callback = function()
+				M._close_and_run(items[i])
+			end,
+			noremap = true,
+			silent = true,
+		})
+	end
+	vim.api.nvim_buf_set_keymap(buf, "n", "q", "", {
 		callback = function()
 			M._close_and_run()
 		end,
