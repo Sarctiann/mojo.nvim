@@ -346,7 +346,7 @@ do
 		local bin = args[1]
 		local stderr = bin:match("mojo%-lldb") and "Embedded script interpreter unavailable" or ""
 		return { wait = function()
-			return { stdout = "", stderr = stderr }
+			return { code = stderr ~= "" and 1 or 0, stdout = "", stderr = stderr }
 		end }
 	end
 
@@ -372,7 +372,7 @@ do
 	vim.system = function(_, opts)
 		probe_opts = opts
 		return { wait = function()
-			return { stdout = "", stderr = "" }
+			return { code = 0, stdout = "", stderr = "" }
 		end }
 	end
 	local chosen2, supports2 = native.pick_native_lldb()
@@ -391,7 +391,7 @@ do
 	-- neither supports scripting: returns primary with scripting=false
 	vim.system = function()
 		return { wait = function()
-			return { stdout = "", stderr = "Embedded script interpreter unavailable" }
+			return { code = 1, stdout = "", stderr = "Embedded script interpreter unavailable" }
 		end }
 	end
 	vim.fn.exepath = function()
@@ -406,6 +406,26 @@ do
 				"pick_native_lldb returned %s/%s (expected /env/bin/mojo-lldb/false)",
 				tostring(chosen3),
 				tostring(supports3)
+			)
+		)
+	end
+
+	-- probe timed out (vim.system reports code 124 with no output): must not be
+	-- treated as scripting support
+	vim.system = function()
+		return { wait = function()
+			return { code = 124, signal = 15, stdout = "", stderr = "" }
+		end }
+	end
+	local chosen4, supports4 = native.pick_native_lldb()
+	if chosen4 == "/env/bin/mojo-lldb" and supports4 == false then
+		pass("pick_native_lldb treats a timed-out probe as scripting=false")
+	else
+		fail(
+			string.format(
+				"pick_native_lldb returned %s/%s on probe timeout (expected /env/bin/mojo-lldb/false)",
+				tostring(chosen4),
+				tostring(supports4)
 			)
 		)
 	end
@@ -441,7 +461,7 @@ do
 		local bin = args[1]
 		local stderr = bin:match("mojo%-lldb") and "Embedded script interpreter unavailable" or ""
 		return { wait = function()
-			return { stdout = "", stderr = stderr }
+			return { code = stderr ~= "" and 1 or 0, stdout = "", stderr = stderr }
 		end }
 	end
 
