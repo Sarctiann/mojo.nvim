@@ -11,10 +11,10 @@ enum TokenType {
     INDENT,
     DEDENT,
     MLIR_ATTR_PREFIX,
-    MLIR_ATTR_SPECIAL_CHARACTER,
+    MLIR_ATTR_PUNCTUATION,
     MLIR_OPERATOR,
     MLIR_TYPE_PREFIX,
-    MLIR_TYPE_SPECIAL_CHARACTER,
+    MLIR_TYPE_PUNCTUATION,
     STRING_START,
     STRING_CONTENT,
     ESCAPE_INTERPOLATION,
@@ -114,11 +114,10 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer,
     bool within_brackets = valid_symbols[CLOSE_BRACE] ||
                            valid_symbols[CLOSE_PAREN] ||
                            valid_symbols[CLOSE_BRACKET];
-    bool mlir_context = valid_symbols[MLIR_ATTR_PREFIX] ||
-                        valid_symbols[MLIR_ATTR_SPECIAL_CHARACTER] ||
-                        valid_symbols[MLIR_OPERATOR] ||
-                        valid_symbols[MLIR_TYPE_PREFIX] ||
-                        valid_symbols[MLIR_TYPE_SPECIAL_CHARACTER];
+    bool mlir_context =
+        valid_symbols[MLIR_ATTR_PREFIX] ||
+        valid_symbols[MLIR_ATTR_PUNCTUATION] || valid_symbols[MLIR_OPERATOR] ||
+        valid_symbols[MLIR_TYPE_PREFIX] || valid_symbols[MLIR_TYPE_PUNCTUATION];
 
     if (mlir_context && !error_recovery_mode) {
         if (lexer->lookahead == '`') {
@@ -132,13 +131,13 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer,
             return true;
         }
 
-        if (valid_symbols[MLIR_ATTR_SPECIAL_CHARACTER]) {
+        if (valid_symbols[MLIR_ATTR_PUNCTUATION]) {
             switch (lexer->lookahead) {
             case '{':
             case '}':
                 advance(lexer);
                 lexer->mark_end(lexer);
-                lexer->result_symbol = MLIR_ATTR_SPECIAL_CHARACTER;
+                lexer->result_symbol = MLIR_ATTR_PUNCTUATION;
                 return true;
             }
         }
@@ -165,7 +164,7 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer,
             return true;
         }
 
-        if (valid_symbols[MLIR_TYPE_SPECIAL_CHARACTER]) {
+        if (valid_symbols[MLIR_TYPE_PUNCTUATION]) {
             switch (lexer->lookahead) {
             case ',':
             case ':':
@@ -177,7 +176,7 @@ bool tree_sitter_mojo_external_scanner_scan(void *payload, TSLexer *lexer,
             case ')':
                 advance(lexer);
                 lexer->mark_end(lexer);
-                lexer->result_symbol = MLIR_TYPE_SPECIAL_CHARACTER;
+                lexer->result_symbol = MLIR_TYPE_PUNCTUATION;
                 return true;
             }
         }

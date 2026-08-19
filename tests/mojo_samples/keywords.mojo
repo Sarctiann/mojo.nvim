@@ -47,7 +47,7 @@ async def h():
 # Imports
 import os
 from sys import path
-import .local_module
+from . import local_module
 from .utils import helper
 
 # Declarations
@@ -62,8 +62,9 @@ trait T:
 def abi_example() abi("C"):
     pass
 
-# Lambda
-var f = lambda x: x + 1
+# Lambda (Mojo 1.0: parenthesized typed args + optional capture list)
+var f = lambda (x: Int) -> Int: x + 1
+var g = lambda (x: Int) {} -> Int: x + 1
 
 # Del
 del x

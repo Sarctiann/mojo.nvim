@@ -52,6 +52,8 @@
 --- @field enabled boolean|nil
 --- @field auto_scroll boolean|nil
 --- @field auto_backend "native"|"dap"|nil
+--- @field build_args string[]|nil
+--- @field use_system_lldb boolean|nil
 --- @field search_for Mojo-lang.DebugBinary[]|nil
 --- @field keymaps Mojo-lang.DebugKeymapsConfig|nil
 --- @field adapter (fun(opts: Mojo-lang.DebugConfig): boolean)|nil
@@ -149,6 +151,8 @@ M.defaults = {
 		enabled = true,
 		auto_scroll = true,
 		auto_backend = nil,
+		build_args = nil, -- extra args passed to `mojo build` during debug compile
+		use_system_lldb = false, -- fall back to system `lldb` for native debug when mojo-lldb lacks Python scripting
 		keymaps = {
 			toggle_breakpoint = "<leader>db",
 			clear_breakpoints = "<leader>dB",

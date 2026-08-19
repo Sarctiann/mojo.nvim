@@ -1,7 +1,8 @@
 # Design: Adopt dmitry-salin/tree-sitter-mojo as the vendored grammar
 
 **Date:** 2026-07-19
-**Status:** Proposed
+**Status:** ✅ Implemented (2026-07-19, PR #11). Vendored grammar later synced to
+upstream v1.0.4 (`68bb75b`, 2026-08-18) via `docs/TODO.md` task #11.
 **Supersedes grammar source in:** `2026-06-06-self-host-treesitter-parser-design.md`,
 `2026-06-06-mojo-grammar-1.0-update-design.md`
 
@@ -22,7 +23,7 @@ manual porting has fallen behind current Mojo:
 
 [dmitry-salin/tree-sitter-mojo](https://github.com/dmitry-salin/tree-sitter-mojo)
 is an actively maintained, MIT-licensed grammar that tracks the current
-[Mojo nightly language reference](https://mojolang.org/nightly/docs/reference/).
+[Mojo language reference](https://mojolang.org/docs/reference/).
 It is `def`-only, uses the current argument conventions, and adds broader
 coverage (MLIR interop, `comptime` control flow, extensions, `where` clauses,
 richer generic/parameter syntax).

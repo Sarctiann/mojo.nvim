@@ -2,6 +2,15 @@
 
 **Status:** Implemented
 
+**Divergence:** The implementation does **not** use the `mojo-lldb-dap` shell
+wrapper as `command` (the spec's example uses `command = "mojo-lldb-dap"`). The
+wrapper hard-codes `exec "$CONDA_PREFIX/bin/_mojo-lldb-dap"`, which breaks when
+`CONDA_PREFIX` is unset, so `adapters/dap.lua` resolves the real
+`_mojo-lldb-dap` binary directly (and `lldb-dap` for uv) and injects the
+formatter `--pre-init-command`s itself instead of relying on the wrapper's
+built-in imports. The plugin still sets `CONDA_PREFIX`/`MODULAR_HOME`/library
+paths via the adapter `env` block.
+
 ## Goal
 
 Enable debugging of Mojo programs in Neovim by integrating `mojo-lldb-dap` (the

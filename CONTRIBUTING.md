@@ -180,13 +180,16 @@ Tests live in `tests/` and run via Neovim's headless mode.
 **Running tests:**
 
 ```bash
-nvim --headless -c "luafile tests/<test_file>.lua" -c "qa!"
+nvim --headless --cmd "set rtp^=$PWD" -c "luafile tests/<test_file>.lua" -c "qa!"
 ```
+
+The `--cmd "set rtp^=$PWD"` prepends the checkout to the runtimepath so tests exercise
+the local mojo.nvim, not whatever is installed in the runner's config.
 
 **Existing tests:** `tests/test_queries.lua` (treesitter), `tests/test_detect.lua` (env),
 `tests/test_lualine.lua` (statusline), `tests/test_commands.lua` (commands),
 `tests/test_sdk_path.lua` (SDK path), `tests/test_status.lua` (status),
-`tests/test_version.lua` (version).
+`tests/test_version.lua` (version), `tests/test_dap.lua` (debug adapters + native fallback).
 
 **Test pattern:**
 

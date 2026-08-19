@@ -15,7 +15,7 @@ end
 local mojo = require("mojo")
 mojo.setup({ verbose = false, commands = { master = true, spread = true } })
 
-local commands = { "Mojo", "MojoRefreshSDK", "MojoRestartLSP", "MojoStopLSP", "MojoMenu", "MojoDebug", "MojoDebugNative", "MojoDebugDap" }
+local commands = { "Mojo", "MojoRefreshSDK", "MojoRestartLSP", "MojoStopLSP", "MojoMenu", "MojoDebug", "MojoDebugNative", "MojoDebugDap", "MojoRebuildParser", "MojoCacheLocation", "MojoClearCache" }
 for _, name in ipairs(commands) do
 	if vim.fn.exists(":" .. name) == 2 then
 		pass(":" .. name .. " command exists")

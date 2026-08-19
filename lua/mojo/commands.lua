@@ -108,6 +108,14 @@ local function do_rebuild()
 	end
 end
 
+local function do_cache_location()
+	require("mojo.status").actions["Cache Location"]()
+end
+
+local function do_clear_cache()
+	require("mojo.status").actions["Clear Cache"]()
+end
+
 local function show_keymaps()
 	local km = require("mojo.config").options.keymaps or {}
 	local sig = km.signature_help or "K"
@@ -137,6 +145,8 @@ local function show_help()
 			"  stop       Stop Mojo LSP server",
 			"  refresh    Clear SDK cache and re-detect",
 			"  rebuild    Rebuild tree-sitter parser",
+			"  cache-location  Print the Mojo cache location",
+			"  clear-cache     Clear the Mojo cache",
 			"  keymaps    Show available keymaps",
 			"  help       Show this help",
 		}, "\n"),
@@ -189,6 +199,16 @@ function M.setup(opts)
 			do_rebuild,
 			{ desc = "Rebuild the self-hosted tree-sitter Mojo parser" }
 		)
+		vim.api.nvim_create_user_command(
+			"MojoCacheLocation",
+			do_cache_location,
+			{ desc = "Print the Mojo cache location" }
+		)
+		vim.api.nvim_create_user_command(
+			"MojoClearCache",
+			do_clear_cache,
+			{ desc = "Clear the Mojo cache (with confirmation)" }
+		)
 	end
 
 	if cmds.master then
@@ -209,6 +229,8 @@ function M.setup(opts)
 		["debug-dap"] = function()
 			do_debug("dap")
 		end,
+		["cache-location"] = do_cache_location,
+		["clear-cache"] = do_clear_cache,
 		}
 
 		vim.api.nvim_create_user_command("Mojo", function(info)
@@ -233,7 +255,7 @@ function M.setup(opts)
 			nargs = "?",
 			complete = function(ArgLead)
 				local all =
-					{ "menu", "run", "dedicated", "debug", "debug-native", "debug-dap", "restart", "stop", "refresh", "rebuild", "keymaps", "help" }
+					{ "menu", "run", "dedicated", "debug", "debug-native", "debug-dap", "restart", "stop", "refresh", "rebuild", "cache-location", "clear-cache", "keymaps", "help" }
 				return vim.iter(all)
 					:filter(function(s)
 						return s:find(ArgLead) ~= nil
