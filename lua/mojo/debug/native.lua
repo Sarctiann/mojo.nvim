@@ -55,13 +55,17 @@ function M.pick_native_lldb()
 	if primary and lldb_supports_scripting(primary) then
 		return primary, true
 	end
-	local sys = vim.fn.exepath("lldb")
-	if sys and sys ~= "" and lldb_supports_scripting(sys) then
-		vim.notify(
-			"mojo.nvim: mojo-lldb lacks Python scripting; using " .. sys .. " so data formatters load",
-			vim.log.levels.INFO
-		)
-		return sys, true
+	-- Falling back to a generic system lldb trades away Mojo type visualization
+	-- (no libMojoLLDB); only do so when the user opts in.
+	if config.options.debug.use_system_lldb then
+		local sys = vim.fn.exepath("lldb")
+		if sys and sys ~= "" and lldb_supports_scripting(sys) then
+			vim.notify(
+				"mojo.nvim: mojo-lldb lacks Python scripting; using " .. sys .. " so data formatters load",
+				vim.log.levels.INFO
+			)
+			return sys, true
+		end
 	end
 	return primary, false
 end

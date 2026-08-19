@@ -311,15 +311,20 @@ do
 	end
 end
 
--- Native fallback: when mojo-lldb lacks Python scripting, prefer a system lldb;
--- pick_native_lldb returns (bin, supports_script) and the probe uses a timeout.
+-- Native fallback: when mojo-lldb lacks Python scripting, prefer a system lldb
+-- (opt-in via debug.use_system_lldb); pick_native_lldb returns (bin,
+-- supports_script) and the probe uses a timeout.
 do
 	local native = require("mojo.debug.native")
 	local env = require("mojo.env")
+	local config = require("mojo.config")
 	local orig_get = env.get_dbg_native_cmd
 	local orig_exepath = vim.fn.exepath
 	local orig_system = vim.system
+	local orig_use_sys = config.options.debug.use_system_lldb
 	local probe_opts = nil
+
+	config.options.debug.use_system_lldb = true
 
 	-- mojo-lldb: no scripting; system lldb: has scripting
 	env.get_dbg_native_cmd = function()
@@ -403,6 +408,55 @@ do
 	env.get_dbg_native_cmd = orig_get
 	vim.fn.exepath = orig_exepath
 	vim.system = orig_system
+	config.options.debug.use_system_lldb = orig_use_sys
+end
+
+-- System lldb fallback is opt-in (debug.use_system_lldb defaults to false):
+-- without it, pick_native_lldb keeps mojo-lldb even when it lacks scripting.
+do
+	local native = require("mojo.debug.native")
+	local env = require("mojo.env")
+	local config = require("mojo.config")
+	local orig_get = env.get_dbg_native_cmd
+	local orig_exepath = vim.fn.exepath
+	local orig_system = vim.system
+	local orig_use_sys = config.options.debug.use_system_lldb
+
+	config.options.debug.use_system_lldb = false
+	env.get_dbg_native_cmd = function()
+		return "/env/bin/mojo-lldb"
+	end
+	vim.fn.exepath = function(name)
+		if name == "lldb" then
+			return "/usr/bin/lldb"
+		end
+		return ""
+	end
+	vim.system = function(args)
+		local bin = args[1]
+		local stderr = bin:match("mojo%-lldb") and "Embedded script interpreter unavailable" or ""
+		return { wait = function()
+			return { stdout = "", stderr = stderr }
+		end }
+	end
+
+	local chosen, supports = native.pick_native_lldb()
+	if chosen == "/env/bin/mojo-lldb" and supports == false then
+		pass("pick_native_lldb keeps mojo-lldb when use_system_lldb is false")
+	else
+		fail(
+			string.format(
+				"pick_native_lldb returned %s/%s (expected /env/bin/mojo-lldb/false when opt-out)",
+				tostring(chosen),
+				tostring(supports)
+			)
+		)
+	end
+
+	env.get_dbg_native_cmd = orig_get
+	vim.fn.exepath = orig_exepath
+	vim.system = orig_system
+	config.options.debug.use_system_lldb = orig_use_sys
 end
 
 -- _import_formatter must emit a valid LLDB command (no broken Python one-liner)

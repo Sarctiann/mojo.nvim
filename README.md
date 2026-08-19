@@ -349,6 +349,7 @@ All features are enabled by default. Pass `enabled = false` to disable any featu
     auto_scroll = true,
     auto_backend = nil, -- nil = auto, "native", "dap"
     build_args = nil, -- extra args passed to `mojo build` during debug compile
+    use_system_lldb = false, -- fall back to system `lldb` for native debug when mojo-lldb lacks Python scripting
     keymaps = {
       toggle_breakpoint = "<leader>db",
       clear_breakpoints = "<leader>dB",
