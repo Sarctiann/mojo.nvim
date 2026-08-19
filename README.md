@@ -116,7 +116,7 @@ DAP debug (`:MojoDebugDap`) requires [nvim-dap](https://github.com/mfussenegger/
 
 **macOS note:** The plugin automatically removes quarantine and re-signs debug adapter binaries (`mojo-lldb-dap` / `_mojo-lldb-dap` / `lldb-dap`) on macOS. Both native and DAP debugging work on macOS with pixi and uv projects.
 
-Mojo's LLDB data formatters (`lldbDataFormatters.py` + `mlirDataFormatters.py`) are loaded automatically for both the DAP and native debug backends by detecting the `lldb-visualizers/` directory in the active pixi or venv environment — no manual setup required. On the native backend the plugin probes LLDB for Python scripting support (`lldb --batch -o 'script pass'`); Mojo's `mojo-lldb` is typically built without it, so the plugin falls back to a system `lldb` that has it so the formatters still load — skipping only when no Python-capable LLDB exists, keeping the session clean.
+Mojo debugging loads Mojo's LLDB plugin (`libMojoLLDB.<ext>`) — the piece that actually visualizes Mojo values in LLDB — automatically for both the DAP and native backends by detecting it in the active pixi or venv environment. Mojo also ships two Python data-formatter scripts (`lldbDataFormatters.py` + `mlirDataFormatters.py`) that pretty-print the compiler's own C++ internals; these are loaded as best-effort extras on the native backend only when the LLDB build supports Python scripting (Mojo's `mojo-lldb` is typically built without it), and on the DAP backend via `?`-prefixed `command script import` commands that never fail the session.
 
 ### Indentation
 

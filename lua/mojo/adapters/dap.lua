@@ -104,12 +104,12 @@ local function find_lldb_dap(detected)
 	if detected.env_dir then
 		table.insert(roots, vim.fs.joinpath(detected.env_dir, "bin"))
 	end
-	-- Prefer a plain `lldb-dap` (uv/PyPI installs), then Mojo's real
-	-- `_mojo-lldb-dap` binary. Skip the `mojo-lldb-dap` shell wrapper: it
-	-- hard-codes `$CONDA_PREFIX/bin/_mojo-lldb-dap` and breaks when CONDA_PREFIX
-	-- is unset, whereas calling the real binary directly lets the adapter
-	-- inject the formatter pre-init-commands itself (without the wrapper's
-	-- fragile `?command script import`).
+	-- Prefer a plain `lldb-dap`, then Mojo's real `_mojo-lldb-dap` binary. Skip
+	-- the `mojo-lldb-dap` shell wrapper: it hard-codes `$CONDA_PREFIX/bin/_mojo-
+	-- lldb-dap` and breaks when CONDA_PREFIX is unset. A uv/PyPI `lldb-dap` is
+	-- itself a Python shim that injects `?!plugin load` / `?command script
+	-- import` and crashes if the plugin/visualizers env vars are unset, so we
+	-- must set both env vars whenever either is available.
 	for _, bin_dir in ipairs(roots) do
 		for _, name in ipairs({ "lldb-dap", "_mojo-lldb-dap" }) do
 			local bin = vim.fs.joinpath(bin_dir, name)
@@ -219,22 +219,28 @@ function M.setup(opts)
 		local visualizers, plugin = find_visualizers(detected)
 		if visualizers then
 			adapter_env.MODULAR_MOJO_MAX_LLDB_VISUALIZERS_PATH = visualizers
+		end
+		if plugin then
+			adapter_env.MODULAR_MOJO_MAX_LLDB_PLUGIN_PATH = plugin
+		end
+		local native_bin = find_lldb_dap(detected)
+		if native_bin then
+			ensure_macos_executable(native_bin)
+			command = native_bin
+			args = {}
 			if plugin then
-				adapter_env.MODULAR_MOJO_MAX_LLDB_PLUGIN_PATH = plugin
+				-- `!` makes plugin load fatal: if the Mojo plugin fails to load,
+				-- stop the chain rather than proceeding with a degraded debugger.
+				table.insert(args, "--pre-init-command")
+				table.insert(args, "?!plugin load " .. plugin)
 			end
-			local native_bin = find_lldb_dap(detected)
-			if native_bin then
-				ensure_macos_executable(native_bin)
-				command = native_bin
-				args = {}
-				if plugin then
-					table.insert(args, "--pre-init-command")
-					table.insert(args, "plugin load " .. plugin)
-				end
+			if visualizers then
+				-- The .py formatters pretty-print the compiler's C++ internals,
+				-- not Mojo values; load them best-effort (`?`) but never fatal.
 				table.insert(args, "--pre-init-command")
-				table.insert(args, "command script import " .. vim.fs.joinpath(visualizers, "lldbDataFormatters.py"))
+				table.insert(args, "?command script import " .. vim.fs.joinpath(visualizers, "lldbDataFormatters.py"))
 				table.insert(args, "--pre-init-command")
-				table.insert(args, "command script import " .. vim.fs.joinpath(visualizers, "mlirDataFormatters.py"))
+				table.insert(args, "?command script import " .. vim.fs.joinpath(visualizers, "mlirDataFormatters.py"))
 			end
 		end
 		if env_dir then

@@ -160,30 +160,42 @@ function M._wait_for_prompt()
 		local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 		for _, line in ipairs(lines) do
 			-- Match the standalone prompt only (a line that is just `(lldb)`),
-			-- not e.g. `(lldb) target create "..."`, so formatters are loaded
-			-- once the session is actually ready rather than mid-target-create.
+			-- not e.g. `(lldb) target create "..."`, so the plugin/formatters are
+			-- loaded once the session is actually ready rather than mid-target-create.
 			if line:match("^%s*%(lldb%)%s*$") then
 				timer:stop()
 				timer:close()
-				-- Load Mojo LLDB data formatters (only if the LLDB build supports
-				-- Python scripting — Mojo's mojo-lldb frequently does not, in which
-				-- case importing only produces noise). The import is still
-				-- best-effort and captured silently when supported.
-				if native_supports_script then
-					local detected = require("mojo.env.detect").detect()
-					local visualizers = require("mojo.adapters.dap").find_visualizers(detected)
-					if visualizers then
-						local fmt = vim.fs.joinpath(visualizers, "lldbDataFormatters.py")
-						local mlir = vim.fs.joinpath(visualizers, "mlirDataFormatters.py")
-						M._import_formatter(fmt)
-						M._import_formatter(mlir)
-					end
-				end
-				require("mojo.debug.breakpoints").sync_all()
+				M._on_prompt()
 				return
 			end
 		end
 	end))
+end
+
+--- Test seam for the scripting-support flag (kept private otherwise).
+--- @param v boolean
+function M._set_supports_script(v)
+	native_supports_script = v
+end
+
+--- Handle the `(lldb)` prompt: load the Mojo LLDB plugin (primary, since that
+--- is what actually visualizes Mojo values) and, only when the LLDB build
+--- supports Python scripting, import the two `.py` data formatters as
+--- best-effort extras, then sync breakpoints.
+function M._on_prompt()
+	local detected = require("mojo.env.detect").detect()
+	local visualizers, plugin = require("mojo.adapters.dap").find_visualizers(detected)
+	-- libMojoLLDB is what visualizes Mojo values; load it whenever present.
+	if plugin then
+		M.send('plugin load "' .. plugin .. '"')
+	end
+	-- The .py formatters only pretty-print compiler C++ internals and need a
+	-- Python-scripting LLDB; import them only when supported.
+	if native_supports_script and visualizers then
+		M._import_formatter(vim.fs.joinpath(visualizers, "lldbDataFormatters.py"))
+		M._import_formatter(vim.fs.joinpath(visualizers, "mlirDataFormatters.py"))
+	end
+	require("mojo.debug.breakpoints").sync_all()
 end
 
 local ATTACH_ERROR_MSG = "Not allowed to attach to process"

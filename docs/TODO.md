@@ -51,7 +51,7 @@
 | `buildArgs` in debug config        | ✅     | `config.debug.build_args` passed to `mojo build` in DAP + native adapters (task #8)                                        |
 | Attach to process                  | ✅     | Via `dap.configurations.mojo` `Attach to Process` entry                                                                     |
 | `mojo debug --vscode` support      | 🟡     | DAP + native `mojo-lldb <bin>` cover the case                                                                               |
-| Mojo data formatters (visualizers) | ✅     | `find_visualizers()` detects `lib/lldb-visualizers` in venv (`site-packages/modular/lib`) + pixi (`env_dir/lib`); loaded in the DAP adapter via `--pre-init-command` `command script import` (the `mojo-lldb-dap` shell wrapper is bypassed in favor of the real `_mojo-lldb-dap` binary) and in the native adapter via `command script import`. The native backend probes LLDB for Python scripting (`lldb --batch -o 'script pass'`); Mojo's `mojo-lldb` is typically built without it, so the plugin falls back to a system `lldb` with scripting support so the formatters still load — skipping only when no Python-capable LLDB exists |
+| Mojo LLDB plugin + visualizers        | ✅     | `find_visualizers()` detects `lib/lldb-visualizers` + `libMojoLLDB.<ext>` in venv (`site-packages/modular/lib`) + pixi (`env_dir/lib`). The Mojo plugin `libMojoLLDB` (the part that visualizes Mojo values) is the primary load: DAP via `?!plugin load` (fatal on failure) and native via `plugin load`. The two `.py` formatter scripts (which pretty-print compiler C++ internals, not Mojo values) are best-effort extras: DAP via `?command script import`, native only when the LLDB build supports Python scripting (`lldb --batch -o 'script pass'` probe). The `mojo-lldb-dap` shell wrapper is bypassed in favor of the real `_mojo-lldb-dap` binary |
 | LLDB init/pre-run/post-run cmds    | 🟡     | Source-map set via `initCommands`; pre/post commands not exposed                                                            |
 | Editor → LLDB breakpoint sync      | 🟡     | Reads from nvim-dap breakpoint API (or `MojoBreakpoint` fallback); incremental sync + LLDB ID tracking pending   |
 
@@ -268,17 +268,18 @@
 - Pass through to `mojo build` command in DAP adapter ✅ (`vim.list_extend` in `build_mojo_file`)
 - Document in README debug configuration section ✅
 
-### ~~9. Load Mojo LLDB data formatters for debugging~~ [done]
+### ~~9. Load Mojo LLDB plugin + data formatters for debugging~~ [done]
 
 **Created:** 2026-06-30 | **Updated:** 2026-08-18
 **Sovereignty:** Rule 5 (Zero-Bundle) — discover formatters, don't bundle them.
-**Why:** The Mojo SDK ships `lldbDataFormatters.py` and `mlirDataFormatters.py` for pretty-printing Mojo types in LLDB. Our DAP and native debug adapters don't load them.
+**Why:** The Mojo SDK ships the `libMojoLLDB` plugin (which visualizes Mojo values in LLDB) plus `lldbDataFormatters.py` and `mlirDataFormatters.py` (which pretty-print compiler C++ internals). Our DAP and native debug adapters should load them.
 
 **Scope:**
 
-- Detect formatter scripts in pixi/venv `lib/` directories alongside the SDK ✅ (`find_visualizers()` — searches `env_dir/lib` and `site-packages/modular/lib` for `lldb-visualizers/`)
-- Add `command script import` to LLDB init commands in both DAP and native adapters ✅ (DAP via `--pre-init-command` using the real `_mojo-lldb-dap` binary, bypassing the `mojo-lldb-dap` shell wrapper; native via a scripting-support probe that falls back to a system `lldb` with Python when Mojo's `mojo-lldb` lacks it, so formatters load whenever any Python-capable LLDB is available).
-- Verified end-to-end ✅ (headless nvim native debug session imports both formatters with no errors; covered by `tests/test_dap.lua` unit tests for detection + `_import_formatter`)
+- Detect the plugin + formatter scripts in pixi/venv `lib/` directories alongside the SDK ✅ (`find_visualizers()` — searches `env_dir/lib` and `site-packages/modular/lib` for `libMojoLLDB.<ext>` + `lldb-visualizers/`)
+- Load the Mojo plugin as the primary concern in both adapters ✅ (DAP via `?!plugin load` — fatal on failure — using the real `_mojo-lldb-dap` binary, bypassing the `mojo-lldb-dap` shell wrapper; native via `plugin load` once the `(lldb)` prompt appears)
+- Import the two `.py` formatters as best-effort extras ✅ (DAP via `?command script import`; native only when the LLDB build supports Python scripting via the `lldb --batch -o 'script pass'` probe)
+- Verified end-to-end ✅ (covered by `tests/test_dap.lua` unit tests for detection, `?!plugin load`/`?command script import` prefixes, and native `_on_prompt` plugin-first loading)
 
 ### ~~10. Document outline view usage in README~~ [done]
 

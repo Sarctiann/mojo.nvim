@@ -178,12 +178,12 @@ do
 		if
 			joined:find("lldbDataFormatters%.py")
 			and joined:find("mlirDataFormatters%.py")
-			and joined:find("command script import")
-			and not joined:find("%?command script import")
+			and joined:find("?command script import")
+			and joined:find("?!plugin load")
 		then
-			pass("DAP adapter loads formatter pre-init-commands")
+			pass("DAP adapter loads plugin (?!plugin load) + formatter pre-init (?command script import)")
 		else
-			fail("DAP adapter missing formatter commands: " .. joined)
+			fail("DAP adapter missing prefixed commands: " .. joined)
 		end
 	else
 		fail(
@@ -233,10 +233,13 @@ do
 
 	if captured and captured.command == env_dir .. "/bin/_mojo-lldb-dap" and captured.args then
 		local joined = table.concat(captured.args, " ")
-		if joined:find("lldbDataFormatters%.py") and joined:find("mlirDataFormatters%.py") then
-			pass("DAP pixi uses _mojo-lldb-dap directly (bypasses wrapper) with formatter pre-init")
+		if
+			joined:find("?command script import")
+			and joined:find("?!plugin load")
+		then
+			pass("DAP pixi uses _mojo-lldb-dap directly with ?!plugin load + ?formatter pre-init")
 		else
-			fail("DAP pixi missing formatter commands: " .. joined)
+			fail("DAP pixi missing prefixed commands: " .. joined)
 		end
 	else
 		fail(
@@ -246,6 +249,65 @@ do
 				captured and captured.command or "nil"
 			)
 		)
+	end
+end
+
+-- DAP adapter: when the Mojo plugin is missing but visualizers exist, do NOT
+-- set MODULAR_MOJO_MAX_LLDB_PLUGIN_PATH and do NOT emit plugin load; still emit
+-- the two ?command script import commands.
+do
+	local env_dir = vim.fn.tempname()
+	os.execute("mkdir -p " .. env_dir .. "/lib/lldb-visualizers")
+	os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/lldbDataFormatters.py")
+	os.execute("touch " .. env_dir .. "/lib/lldb-visualizers/mlirDataFormatters.py")
+	os.execute("mkdir -p " .. env_dir .. "/bin")
+	os.execute("touch " .. env_dir .. "/bin/lldb-dap")
+
+	package.loaded["dap"] = { adapters = {}, configurations = {} }
+	local env = require("mojo.env")
+	local orig_dap = env.get_dap_cmd
+	env.get_dap_cmd = function()
+		return { "mojo-lldb-dap" }, env_dir
+	end
+	local detect = require("mojo.env.detect")
+	local orig_detect = detect.detect
+	detect.detect = function()
+		return { type = "pixi", env_dir = env_dir, bin_dir = env_dir .. "/bin" }
+	end
+
+	dap.setup({ enabled = true })
+	local captured = nil
+	local adapter_fn = package.loaded["dap"].adapters["mojo-lldb"]
+	if adapter_fn then
+		adapter_fn(function(cfg)
+			captured = cfg
+		end, nil)
+	end
+
+	env.get_dap_cmd = orig_dap
+	detect.detect = orig_detect
+	os.execute("rm -rf " .. env_dir)
+
+	if captured and captured.args then
+		local joined = table.concat(captured.args, " ")
+		local no_plugin_load = not joined:find("plugin load")
+		local has_formatters = joined:find("?command script import") ~= nil
+		local no_plugin_env = not (captured.options.env.MODULAR_MOJO_MAX_LLDB_PLUGIN_PATH)
+		if no_plugin_load and has_formatters and no_plugin_env then
+			pass("DAP with no plugin omits plugin load + plugin env var, keeps ?formatter imports")
+		else
+			fail(
+				string.format(
+					"DAP no-plugin case wrong (plugin_load=%s, formatters=%s, plugin_env=%s): %s",
+					tostring(no_plugin_load),
+					tostring(has_formatters),
+					tostring(no_plugin_env),
+					joined
+				)
+			)
+		end
+	else
+		fail("DAP no-plugin case did not build config: " .. vim.inspect(captured))
 	end
 end
 
@@ -313,6 +375,61 @@ do
 	else
 		fail("unexpected formatter command: " .. tostring(captured[1]))
 	end
+end
+
+-- Native _on_prompt: plugin load (libMojoLLDB) is primary; .py formatters are
+-- imported only when scripting is supported.
+do
+	local native = require("mojo.debug.native")
+	local captured = {}
+	native.send = function(cmd)
+		table.insert(captured, cmd)
+	end
+	local sync_called = 0
+	local orig_sync = require("mojo.debug.breakpoints").sync_all
+	require("mojo.debug.breakpoints").sync_all = function()
+		sync_called = sync_called + 1
+	end
+
+	local orig_detect = require("mojo.env.detect").detect
+	require("mojo.env.detect").detect = function()
+		return { type = "pixi", env_dir = "/env", bin_dir = "/env/bin" }
+	end
+	local orig_fv = require("mojo.adapters.dap").find_visualizers
+	require("mojo.adapters.dap").find_visualizers = function()
+		return "/env/lib/lldb-visualizers", "/env/lib/libMojoLLDB.so"
+	end
+
+	-- Case 1: scripting supported -> plugin load + both formatter imports
+	native._set_supports_script(true)
+	captured = {}
+	sync_called = 0
+	native._on_prompt()
+	if
+		captured[1] == 'plugin load "/env/lib/libMojoLLDB.so"'
+		and captured[2] == 'command script import "/env/lib/lldb-visualizers/lldbDataFormatters.py"'
+		and captured[3] == 'command script import "/env/lib/lldb-visualizers/mlirDataFormatters.py"'
+		and sync_called == 1
+	then
+		pass("native _on_prompt loads plugin first, then formatters when scripting")
+	else
+		fail("native _on_prompt (scripting) unexpected commands: " .. vim.inspect(captured))
+	end
+
+	-- Case 2: no scripting -> plugin load still happens, formatters skipped
+	native._set_supports_script(false)
+	captured = {}
+	sync_called = 0
+	native._on_prompt()
+	if captured[1] == 'plugin load "/env/lib/libMojoLLDB.so"' and #captured == 1 and sync_called == 1 then
+		pass("native _on_prompt loads plugin even without scripting, skips formatters")
+	else
+		fail("native _on_prompt (no scripting) unexpected commands: " .. vim.inspect(captured))
+	end
+
+	require("mojo.debug.breakpoints").sync_all = orig_sync
+	require("mojo.env.detect").detect = orig_detect
+	require("mojo.adapters.dap").find_visualizers = orig_fv
 end
 
 -- Integration: real pixi + uv samples must both resolve env, visualizers, native cmd
